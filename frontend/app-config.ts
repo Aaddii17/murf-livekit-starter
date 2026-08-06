@@ -33,9 +33,9 @@ export interface AppConfig {
 }
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
-  companyName: 'Murf AI',
-  pageTitle: 'Voice Agent Starter',
-  pageDescription: 'A voice agent powered by Murf Falcon — the fastest TTS API',
+  companyName: 'Kisan Vaani',
+  pageTitle: 'Kisan Vaani — Voice for Bharat Edition',
+  pageDescription: 'Your AI agricultural voice assistant for crop advice, weather, and mandi prices.',
 
   supportsChatInput: true,
   supportsVideoInput: true,
