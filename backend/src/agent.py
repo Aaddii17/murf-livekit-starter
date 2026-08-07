@@ -11,8 +11,9 @@ from livekit.agents import (
     JobProcess,
     cli,
     tokenize,
+    room_io,
 )
-from livekit.plugins import murf, silero, deepgram, groq
+from livekit.plugins import murf, silero, deepgram, groq, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("agent")
@@ -31,17 +32,17 @@ You are 'Kisan Vaani', a warm, practical, and trusted Indian AI agricultural ass
 - You know Indian crop seasons (Kharif, Rabi, Zaid), organic farming, weather trends, and general mandi price ranges.
 - You do NOT possess private banking info, land records, or medical/legal expertise.
 
-[LANGUAGE & REGISTER]
-- Match the user's language and register (Hinglish, Hindi, English, Tamil).
-- CRITICAL PRONUNCIATION RULE: Write Hindi/Hinglish responses in Latin script (e.g. "Namaste! Delhi mein aaj mausam saaf hai"). NEVER write in Devanagari script (like "नमस्ते"). Writing in Latin script ensures Murf Falcon TTS speaks with a 100% natural, fluent Indian accent.
+[LANGUAGE & SCRIPT]
+- Respond in native scripts: Write Hindi in Devanagari script (e.g., "नमस्ते! दिल्ली में आज मौसम साफ है।"), English in English, and Tamil in Tamil.
+- Match the user's spoken language naturally.
 
 [GUARDRAILS & REFUSALS]
-1. MANDI PRICE GUARDRAIL: Never state a market price as a guaranteed fact without adding "e-NAM ke anusaar aaj ka anumanit bhav hai" (estimated price as of today).
+1. MANDI PRICE GUARDRAIL: Never state a market price as a guaranteed fact without adding "e-NAM के अनुसार आज का अनुमानित भाव है" (estimated price as of today).
 2. PESTICIDE / CHEMICAL GUARDRAIL: Never prescribe dangerous chemical dosages or guarantee disease diagnoses. Always advise consulting a local Krishi Vigyan Kendra (KVK) officer for physical crop inspection.
-3. OUT OF SCOPE & ESCALATION: Refuse stock market tips, medical advice, banking OTPs/loans, or non-farming topics. Say: "Main kheti-badi sahayak hoon aur is topic par salah nahi de sakta. Kripya Kisan Call Centre Toll-Free 1800-180-1551 par call karein."
+3. OUT OF SCOPE & ESCALATION: Refuse stock market tips, medical advice, banking OTPs/loans, or non-farming topics. Say: "मैं खेती-बाड़ी सहायक हूँ और इस विषय पर सलाह नहीं दे सकता। कृपया किसान कॉल सेंटर टोल-फ्री 1800-180-1551 पर संपर्क करें।"
 
 [STYLE FOR VOICE]
-- Keep responses short, conversational, and direct (1 to 2 short sentences max, under 25 words).
+- Keep responses short, conversational, and direct (1 to 2 short sentences max, under 20 words).
 - Never use screen formatting like bullet points, brackets, emojis, or symbols."""
 
 
@@ -60,14 +61,11 @@ def prewarm(proc: JobProcess):
 server.setup_fnc = prewarm
 
 
-@server.rtc_session()
+@server.rtc_session(agent_name="my-agent")
 async def my_agent(ctx: JobContext):
     ctx.log_context_fields = {
         "room": ctx.room.name,
     }
-
-    # Connect to room first
-    await ctx.connect()
 
     # Ultra-fast Groq LLM plugin
     llm_provider = groq.LLM(
@@ -75,7 +73,7 @@ async def my_agent(ctx: JobContext):
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
-    # Official Murf AI Multilingual Configuration
+    # Official Murf AI Multilingual Configuration from starter repo
     session = AgentSession(
         stt=deepgram.STT(model="nova-3", language="multi"),
         llm=llm_provider,
@@ -93,11 +91,24 @@ async def my_agent(ctx: JobContext):
     await session.start(
         agent=Assistant(),
         room=ctx.room,
+        room_options=room_io.RoomOptions(
+            audio_input=room_io.AudioInputOptions(
+                noise_cancellation=lambda params: (
+                    noise_cancellation.BVCTelephony()
+                    if params.participant.kind
+                    == rtc.ParticipantKind.PARTICIPANT_KIND_SIP
+                    else noise_cancellation.BVC()
+                ),
+            ),
+        ),
     )
 
-    # Send initial first-turn greeting
+    # Connect to room
+    await ctx.connect()
+
+    # Send initial greeting in Devanagari Hindi for natural Murf multi-locale TTS
     await session.say(
-        "Namaste! Main Kisan Vaani hoon, aapka kheti baadi sahayak. Aap kaunsi fasal ya mausam ke baare mein jaanna chahte hain?",
+        "नमस्ते! मैं किसान वाणी हूँ, आपका खेती बाड़ी सहायक। आप कौनसी फसल या मौसम के बारे में जानना चाहते हैं?",
         allow_interruptions=True,
     )
 
