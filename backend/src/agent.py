@@ -10,8 +10,10 @@ from livekit.agents import (
     JobContext,
     JobProcess,
     cli,
+    tokenize,
 )
 from livekit.plugins import murf, silero, deepgram, groq
+from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("agent")
 
@@ -22,7 +24,7 @@ You are 'Kisan Vaani', a warm, practical, and trusted Indian AI agricultural ass
 
 [OBJECTIVES]
 1. Help farmers with practical crop guidance, soil health, and weather advisories.
-2. Provide estimated mandi market prices clearly indicating they are current estimates.
+2. Provide estimated mandi market prices clearly indicating they are current estimates as of today.
 3. Assist in simple, accessible voice interactions in the user's preferred language.
 
 [KNOWLEDGE]
@@ -73,15 +75,17 @@ async def my_agent(ctx: JobContext):
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
-    # Set up session with verified Falcon Hindi male voice hi-IN-karan & locale="hi-IN"
+    # Official Murf AI Multilingual Configuration
     session = AgentSession(
-        stt=deepgram.STT(model="nova-2", language="hi"),
+        stt=deepgram.STT(model="nova-3", language="multi"),
         llm=llm_provider,
         tts=murf.TTS(
-            model="falcon",
-            voice="hi-IN-karan",
-            locale="hi-IN",
+            voice="Anisha",
+            style="Conversation",
+            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+            text_pacing=True,
         ),
+        turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
         preemptive_generation=True,
     )
