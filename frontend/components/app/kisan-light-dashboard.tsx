@@ -9,7 +9,6 @@ import {
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import {
-  Mic,
   PhoneOff,
   AlertCircle,
   Clock,
@@ -98,66 +97,66 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-sky-300 via-sky-100 via-amber-50/70 to-emerald-100 font-sans text-slate-900 selection:bg-emerald-200">
+    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-sky-400 via-sky-200 via-emerald-100 to-amber-50 font-sans text-slate-900 selection:bg-emerald-200">
       
-      {/* ☀️ BRIGHT SUNNY DAYLIGHT SKY & BIRDS BACKGROUND LAYER */}
+      {/* ☀️ BRIGHT SUNNY SKY & ANIMATED COUNTRYSIDE SCENE */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         
-        {/* Radiant Golden Sun in Upper Center-Right */}
-        <div className="absolute top-8 right-24 flex items-center justify-center md:right-48">
-          <div className="absolute size-36 animate-ping rounded-full bg-amber-300/30 opacity-75" />
-          <div className="absolute size-28 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-100 shadow-[0_0_60px_rgba(251,191,36,0.8)]" />
-          <Sun className="relative size-16 text-amber-500 animate-spin-slow" />
+        {/* Glowing Sun */}
+        <div className="absolute top-6 right-20 flex items-center justify-center md:right-44">
+          <div className="absolute size-40 animate-ping rounded-full bg-amber-300/40 opacity-75" />
+          <div className="absolute size-32 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-100 shadow-[0_0_80px_rgba(251,191,36,0.9)]" />
+          <Sun className="relative size-20 text-amber-500 animate-spin-slow" />
         </div>
 
-        {/* Soft Fluffy Clouds */}
-        <div className="absolute top-12 left-16 opacity-80">
-          <Cloud className="size-20 text-white/90 drop-shadow-md" />
+        {/* Fluffy White Clouds */}
+        <div className="absolute top-10 left-12 opacity-90">
+          <Cloud className="size-24 text-white/95 drop-shadow-md" />
         </div>
-        <div className="absolute top-20 right-80 opacity-70">
-          <Cloud className="size-16 text-white/80 drop-shadow-sm" />
+        <div className="absolute top-24 right-72 opacity-80">
+          <Cloud className="size-20 text-white/90 drop-shadow-sm" />
         </div>
 
         {/* 🕊️ 5-6 ANIMATED FLYING BIRDS IN LOOP */}
-        <div className="absolute top-12 left-0 w-full z-10">
-          <svg className="h-16 w-full" viewBox="0 0 1200 120" fill="none">
+        <div className="absolute top-10 left-0 w-full z-10">
+          <svg className="h-20 w-full" viewBox="0 0 1200 120" fill="none">
             <g className="animate-bird-fly-1">
               <path
-                d="M 0 30 Q 15 15 30 30 Q 45 15 60 30"
-                stroke="#1e293b"
-                strokeWidth="2.5"
+                d="M 0 30 Q 15 12 30 30 Q 45 12 60 30"
+                stroke="#0f172a"
+                strokeWidth="3"
                 strokeLinecap="round"
                 fill="none"
               />
               <path
-                d="M 70 45 Q 82 32 95 45 Q 108 32 120 45"
-                stroke="#334155"
-                strokeWidth="2"
+                d="M 70 45 Q 82 28 95 45 Q 108 28 120 45"
+                stroke="#1e293b"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 fill="none"
               />
             </g>
             <g className="animate-bird-fly-2">
               <path
-                d="M 0 60 Q 12 48 25 60 Q 38 48 50 60"
+                d="M 0 60 Q 12 44 25 60 Q 38 44 50 60"
                 stroke="#0f172a"
-                strokeWidth="2.5"
+                strokeWidth="3"
                 strokeLinecap="round"
                 fill="none"
               />
               <path
-                d="M 65 25 Q 75 15 85 25 Q 95 15 105 25"
+                d="M 65 25 Q 75 12 85 25 Q 95 12 105 25"
                 stroke="#334155"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 fill="none"
               />
             </g>
             <g className="animate-bird-fly-3">
               <path
-                d="M 0 40 Q 18 22 35 40 Q 52 22 70 40"
-                stroke="#1e293b"
-                strokeWidth="2.5"
+                d="M 0 40 Q 18 20 35 40 Q 52 20 70 40"
+                stroke="#0284c7"
+                strokeWidth="3"
                 strokeLinecap="round"
                 fill="none"
               />
@@ -165,12 +164,12 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
           </svg>
         </div>
 
-        {/* 🌾 LUSH GREEN COUNTRYSIDE FIELDS, TRACTOR & TUBEWELL */}
-        <div className="absolute right-0 bottom-0 left-0 h-80 overflow-hidden">
+        {/* 🌾 LUSH GREEN FIELDS, ANIMATED TRACTOR & TUBEWELL */}
+        <div className="absolute right-0 bottom-0 left-0 h-96 overflow-hidden">
           {/* Back Hills */}
           <svg
-            className="absolute bottom-0 w-full text-emerald-400/50"
-            viewBox="0 0 1440 240"
+            className="absolute bottom-0 w-full text-emerald-400/60"
+            viewBox="0 0 1440 260"
             fill="currentColor"
           >
             <path d="M0,160L120,144C240,128,480,96,720,112C960,128,1200,192,1320,224L1440,256L1440,320L1320,320C1200,320,960,320,720,320C480,320,240,320,120,320L0,320Z" />
@@ -178,49 +177,49 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
 
           {/* Front Golden Wheat Fields */}
           <svg
-            className="absolute -bottom-4 w-full text-amber-500/30"
-            viewBox="0 0 1440 180"
+            className="absolute -bottom-4 w-full text-amber-400/40"
+            viewBox="0 0 1440 200"
             fill="currentColor"
           >
-            <path d="M0,96L80,106.7C160,117,320,139,480,133.3C640,128,800,96,960,90.7C1120,85,1280,107,1360,117.3L1440,128L1440,240L1360,240C1280,240,1120,240,960,240C800,240,640,240,480,240C320,240,160,240,80,240L0,240Z" />
+            <path d="M0,96L80,106.7C160,117,320,139,480,133.3C640,128,800,96,960,90.7C1120,85,1280,107,1360,117.3L1440,128L1440,240L1360,240C1280,240,1120,240,960,240C480,240,240,240,80,240L0,240Z" />
           </svg>
 
           {/* Green Foreground Crop Rows */}
           <svg
-            className="absolute -bottom-2 w-full text-emerald-600/60"
-            viewBox="0 0 1440 120"
+            className="absolute -bottom-2 w-full text-emerald-700/70"
+            viewBox="0 0 1440 140"
             fill="currentColor"
           >
-            <path d="M0,40L120,53.3C240,67,480,93,720,85.3C960,78,1200,37,1320,16L1440,0L1440,120L1320,120C1200,120,960,120,720,120C480,120,240,120,120,120L0,120Z" />
+            <path d="M0,40L120,53.3C240,67,480,93,720,85.3C960,78,1200,37,1320,16L1440,0L1440,140L1320,140C1200,140,960,140,720,140C480,140,240,140,120,140L0,140Z" />
           </svg>
 
-          {/* 🌊 TUBEWELL WATER PUMP ENGINE WITH GUSHING WATER (Bottom Left Center) */}
-          <div className="absolute bottom-12 left-1/4 hidden flex-col items-center opacity-95 lg:flex">
-            <div className="relative flex items-end gap-1.5 rounded-2xl border border-cyan-300 bg-white/80 p-3 shadow-md backdrop-blur-xs">
-              {/* Engine Pump Box */}
-              <div className="flex flex-col items-center">
-                <div className="h-10 w-6 rounded-t-md bg-slate-800 shadow-sm" />
-                <div className="h-6 w-10 bg-red-600 rounded-b-md flex items-center justify-center text-[9px] font-bold text-white">PUMP</div>
-              </div>
-              {/* Pipe & Water Stream */}
-              <div className="relative h-12 w-28">
-                <div className="absolute top-1 left-0 h-10 w-24 rounded-br-full bg-cyan-400 animate-pulse shadow-[0_0_20px_rgba(34,211,238,0.8)]" />
-                <div className="absolute top-3 left-2 h-6 w-20 rounded-br-full bg-sky-100 animate-ping opacity-80" />
-              </div>
+          {/* 🚜 CONTINUOUS ANIMATED TRACTOR PLOUGHING FIELDS */}
+          <div className="absolute bottom-20 left-0 w-full animate-tractor-drive pointer-events-none">
+            <div className="flex items-center gap-2 rounded-2xl border-2 border-amber-400 bg-white/95 px-4 py-2 shadow-xl backdrop-blur-md w-max">
+              <span className="text-4xl animate-bounce">🚜</span>
               <div className="flex flex-col">
-                <span className="text-xs font-black text-cyan-900">🌊 Tubewell Water</span>
-                <span className="text-[10px] font-bold text-emerald-700">Irrigating Crops</span>
+                <span className="text-xs font-black text-amber-950">🚜 Tractor Ploughing Field</span>
+                <span className="text-[10px] font-extrabold text-emerald-800">Khet Ki Jotai</span>
               </div>
             </div>
           </div>
 
-          {/* 🚜 FARMER PLOUGHING FIELD WITH TRACTOR (Bottom Right Center) */}
-          <div className="absolute bottom-12 right-1/4 hidden items-center opacity-95 lg:flex">
-            <div className="flex items-center gap-2 rounded-2xl border border-amber-300 bg-white/80 p-3 shadow-md backdrop-blur-xs">
-              <span className="text-3xl animate-bounce">🚜</span>
+          {/* 🌊 ANIMATED TUBEWELL PUMP WITH GUSHING WATER */}
+          <div className="absolute bottom-16 left-1/3 flex items-end gap-2 opacity-95">
+            <div className="flex items-end gap-2 rounded-2xl border-2 border-cyan-400 bg-white/95 p-3 shadow-xl backdrop-blur-md">
+              {/* Engine Box */}
+              <div className="flex flex-col items-center">
+                <div className="h-10 w-7 rounded-t-md bg-slate-900 shadow-md" />
+                <div className="h-6 w-12 rounded-b-md bg-red-600 flex items-center justify-center text-[9px] font-black text-white">ENGINE</div>
+              </div>
+              {/* Gushing Water Pipeline */}
+              <div className="relative h-12 w-32">
+                <div className="absolute top-1 left-0 h-10 w-28 rounded-br-full bg-cyan-400 animate-pulse shadow-[0_0_25px_rgba(34,211,238,0.9)]" />
+                <div className="absolute top-3 left-2 h-6 w-24 rounded-br-full bg-sky-100 animate-ping opacity-90" />
+              </div>
               <div className="flex flex-col">
-                <span className="text-xs font-black text-amber-900">🚜 Ploughing Field</span>
-                <span className="text-[10px] font-bold text-emerald-700">Khet Ki Jotai</span>
+                <span className="text-xs font-black text-cyan-950">🌊 Tubewell Water Stream</span>
+                <span className="text-[10px] font-extrabold text-emerald-800">Crops Irrigation</span>
               </div>
             </div>
           </div>
@@ -228,7 +227,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
       </div>
 
       {/* 🔝 TOP HEADER BAR */}
-      <header className="relative z-20 flex flex-wrap items-center justify-between gap-4 border-b border-emerald-300/80 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-md md:px-8">
+      <header className="relative z-20 flex flex-wrap items-center justify-between gap-4 border-b-2 border-emerald-300 bg-white/95 px-4 py-3 shadow-md backdrop-blur-md md:px-8">
         {/* Left Branding with Official Kisan Diwas Logo */}
         <div className="flex items-center gap-3">
           <div className="relative size-14 overflow-hidden rounded-full border-2 border-amber-500 shadow-md">
@@ -307,10 +306,10 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
       )}
 
       {/* 🎯 MAIN CENTER CALL PORTAL (5 AGENT STATES) */}
-      <main className="relative z-20 mx-auto flex max-w-4xl flex-col items-center justify-center px-4 pt-4 pb-36 text-center">
+      <main className="relative z-20 mx-auto flex max-w-4xl flex-col items-center justify-center px-4 pt-2 pb-44 text-center">
         
         {/* State Badge Banner */}
-        <div className="mb-3 inline-flex items-center gap-2.5 rounded-full border-2 border-emerald-400 bg-white/95 px-5 py-2 shadow-md backdrop-blur-md">
+        <div className="mb-2 inline-flex items-center gap-2.5 rounded-full border-2 border-emerald-400 bg-white/95 px-5 py-2 shadow-md backdrop-blur-md">
           <span
             className={`size-3.5 rounded-full ${
               currentStateName === 'Speaking'
@@ -331,7 +330,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
 
         {/* Central Sprout Avatar Circle */}
-        <div className="relative my-3 flex size-48 items-center justify-center rounded-full border-4 border-emerald-500 bg-gradient-to-tr from-emerald-100 via-amber-50 to-amber-100 shadow-2xl md:size-56">
+        <div className="relative my-2 flex size-44 items-center justify-center rounded-full border-4 border-emerald-500 bg-gradient-to-tr from-emerald-100 via-amber-50 to-amber-100 shadow-2xl md:size-52">
           {currentStateName === 'Speaking' && (
             <div className="absolute inset-0 size-full rounded-full border-4 border-emerald-500 animate-ping opacity-60" />
           )}
@@ -349,27 +348,27 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
 
         {/* 🌾 TOPIC SUGGESTION PILLS (When Ready) */}
         {!isConnected && (
-          <div className="my-3 flex flex-wrap items-center justify-center gap-2 max-w-xl">
-            <span className="w-full text-xs font-black text-emerald-900 uppercase tracking-widest mb-1">
+          <div className="my-2 flex flex-wrap items-center justify-center gap-2 max-w-xl">
+            <span className="w-full text-xs font-black text-emerald-900 uppercase tracking-widest mb-0.5">
               Ask Kisan Vaani About:
             </span>
-            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1.5 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
+            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
               🌾 Wheat & Paddy Mandi Rates
             </span>
-            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1.5 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
+            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
               🐛 Pest Control & Fertilizers
             </span>
-            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1.5 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
+            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
               ☀️ Local Weather Forecast
             </span>
-            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1.5 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
+            <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
               📗 PM-Kisan Schemes
             </span>
           </div>
         )}
 
         {/* 🎬 MAIN ACTION BUTTONS */}
-        <div className="mt-2 flex flex-col items-center gap-3">
+        <div className="mt-2 flex flex-col items-center gap-2">
           {!isConnected ? (
             <button
               onClick={handleStartCall}
@@ -395,20 +394,20 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
       </main>
 
-      {/* 🇮🇳 PROMINENT DIGNITARY LEADERS STANDING ON LEFT & RIGHT */}
+      {/* 🇮🇳 MUCH BIGGER TRANSPARENT LEADER CUTOUTS ON LEFT & RIGHT */}
       
-      {/* Bottom Left: Shri Shivraj Singh Chouhan */}
-      <div className="fixed bottom-0 left-2 z-30 flex items-end gap-2 md:left-6">
-        <div className="relative h-44 w-36 md:h-56 md:w-44 drop-shadow-2xl">
+      {/* Bottom Left: Shri Shivraj Singh Chouhan (MUCH BIGGER CUTOUT) */}
+      <div className="fixed bottom-0 left-0 z-30 flex flex-col items-start pointer-events-none">
+        <div className="relative h-80 w-64 md:h-[420px] md:w-80 drop-shadow-2xl">
           <Image
-            src="/chouhan_portrait.png"
+            src="/chouhan_transparent.png"
             alt="Shri Shivraj Singh Chouhan"
             fill
             className="object-contain object-bottom"
             priority
           />
         </div>
-        <div className="mb-4 rounded-2xl border-2 border-emerald-400 bg-white/95 px-3 py-2 shadow-xl backdrop-blur-md max-w-[180px] md:max-w-[220px]">
+        <div className="pointer-events-auto ml-4 mb-3 rounded-xl border-2 border-emerald-400 bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md max-w-[200px] md:max-w-[240px]">
           <h4 className="text-xs font-black text-emerald-950">
             Shri Shivraj Singh Chouhan
           </h4>
@@ -418,24 +417,24 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji */}
-      <div className="fixed bottom-0 right-2 z-30 flex items-end gap-2 md:right-6">
-        <div className="mb-4 rounded-2xl border-2 border-amber-400 bg-white/95 px-3 py-2 shadow-xl backdrop-blur-md max-w-[180px] md:max-w-[220px]">
+      {/* Bottom Right: Shri Narendra Modi Ji (MUCH BIGGER CUTOUT) */}
+      <div className="fixed bottom-0 right-0 z-30 flex flex-col items-end pointer-events-none">
+        <div className="relative h-80 w-72 md:h-[420px] md:w-[380px] drop-shadow-2xl">
+          <Image
+            src="/modi_transparent.png"
+            alt="Shri Narendra Modi Ji"
+            fill
+            className="object-contain object-bottom"
+            priority
+          />
+        </div>
+        <div className="pointer-events-auto mr-4 mb-3 rounded-xl border-2 border-amber-400 bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md max-w-[200px] md:max-w-[240px]">
           <h4 className="text-xs font-black text-amber-950 text-right">
             Shri Narendra Modi Ji
           </h4>
           <p className="text-[10px] font-extrabold leading-tight text-amber-800 text-right">
             Hon&apos;ble Prime Minister of India
           </p>
-        </div>
-        <div className="relative h-48 w-36 md:h-60 md:w-44 drop-shadow-2xl">
-          <Image
-            src="/modi_portrait.png"
-            alt="Shri Narendra Modi Ji"
-            fill
-            className="object-contain object-bottom"
-            priority
-          />
         </div>
       </div>
 

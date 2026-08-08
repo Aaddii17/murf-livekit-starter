@@ -69,7 +69,7 @@
   }
 }
 
-/* Custom Flying Birds & Sun Animations */
+/* Custom Flying Birds, Tractor Drive & Sun Animations */
 @keyframes birdFly1 {
   0% { transform: translateX(-100px) translateY(0); }
   50% { transform: translateX(550px) translateY(-20px); }
@@ -88,6 +88,11 @@
   100% { transform: translateX(1150px) translateY(-5px); }
 }
 
+@keyframes tractorDrive {
+  0% { transform: translateX(-250px); }
+  100% { transform: translateX(1300px); }
+}
+
 @keyframes spinSlow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -103,6 +108,10 @@
 
 .animate-bird-fly-3 {
   animation: birdFly3 19s linear infinite 7s;
+}
+
+.animate-tractor-drive {
+  animation: tractorDrive 35s linear infinite;
 }
 
 .animate-spin-slow {
