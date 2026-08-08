@@ -1,32 +1,9 @@
 'use client';
 
-import { useTheme } from 'next-themes';
-import { AnimatePresence, motion } from 'motion/react';
 import { useSessionContext } from '@livekit/components-react';
 import type { AppConfig } from '@/app-config';
+import { KisanLightDashboard } from '@/components/app/kisan-light-dashboard';
 import { AgentSessionView_01 } from '@/components/agents-ui/blocks/agent-session-view-01';
-import { WelcomeView } from '@/components/app/welcome-view';
-
-const MotionWelcomeView = motion.create(WelcomeView);
-const MotionSessionView = motion.create(AgentSessionView_01);
-
-const VIEW_MOTION_PROPS = {
-  variants: {
-    visible: {
-      opacity: 1,
-    },
-    hidden: {
-      opacity: 0,
-    },
-  },
-  initial: 'hidden',
-  animate: 'visible',
-  exit: 'hidden',
-  transition: {
-    duration: 0.5,
-    ease: 'linear',
-  },
-};
 
 interface ViewControllerProps {
   appConfig: AppConfig;
@@ -34,44 +11,28 @@ interface ViewControllerProps {
 
 export function ViewController({ appConfig }: ViewControllerProps) {
   const { isConnected, start } = useSessionContext();
-  const { resolvedTheme } = useTheme();
 
   return (
-    <AnimatePresence mode="wait">
-      {/* Welcome view */}
-      {!isConnected && (
-        <MotionWelcomeView
-          key="welcome"
-          {...VIEW_MOTION_PROPS}
-          startButtonText={appConfig.startButtonText}
-          onStartCall={start}
-        />
-      )}
-      {/* Session view */}
+    <div className="relative min-h-screen w-full">
+      {/* Primary Light-Theme Agricultural Dashboard & Landing */}
+      <KisanLightDashboard onStartCall={start} />
+
+      {/* Active Session Audio Visualizer & Control Layer when connected */}
       {isConnected && (
-        <MotionSessionView
-          key="session-view"
-          {...VIEW_MOTION_PROPS}
-          supportsChatInput={appConfig.supportsChatInput}
-          supportsVideoInput={appConfig.supportsVideoInput}
-          supportsScreenShare={appConfig.supportsScreenShare}
-          isPreConnectBufferEnabled={appConfig.isPreConnectBufferEnabled}
-          audioVisualizerType={appConfig.audioVisualizerType}
-          audioVisualizerColor={
-            resolvedTheme === 'dark'
-              ? appConfig.audioVisualizerColorDark
-              : appConfig.audioVisualizerColor
-          }
-          audioVisualizerColorShift={appConfig.audioVisualizerColorShift}
-          audioVisualizerBarCount={appConfig.audioVisualizerBarCount}
-          audioVisualizerGridRowCount={appConfig.audioVisualizerGridRowCount}
-          audioVisualizerGridColumnCount={appConfig.audioVisualizerGridColumnCount}
-          audioVisualizerRadialBarCount={appConfig.audioVisualizerRadialBarCount}
-          audioVisualizerRadialRadius={appConfig.audioVisualizerRadialRadius}
-          audioVisualizerWaveLineWidth={appConfig.audioVisualizerWaveLineWidth}
-          className="fixed inset-0"
-        />
+        <div className="fixed inset-x-0 bottom-24 z-40 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto rounded-3xl border border-emerald-300/80 bg-white/95 p-4 shadow-2xl backdrop-blur-md max-w-lg w-full mx-4">
+            <AgentSessionView_01
+              supportsChatInput={appConfig.supportsChatInput}
+              supportsVideoInput={appConfig.supportsVideoInput}
+              supportsScreenShare={appConfig.supportsScreenShare}
+              isPreConnectBufferEnabled={appConfig.isPreConnectBufferEnabled}
+              audioVisualizerType="bar"
+              audioVisualizerColor="#059669"
+              audioVisualizerBarCount={5}
+            />
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </div>
   );
 }

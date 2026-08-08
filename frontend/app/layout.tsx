@@ -55,7 +55,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       className={cn(
         publicSans.variable,
         commitMono.variable,
-        'dark scroll-smooth font-sans antialiased'
+        'light scroll-smooth font-sans antialiased'
       )}
     >
       <head>
@@ -63,11 +63,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
       </head>
-      <body className="bg-background text-foreground overflow-x-hidden" suppressHydrationWarning>
+      <body className="bg-emerald-50 text-slate-900 overflow-x-hidden" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          forcedTheme="dark"
+          defaultTheme="light"
+          forcedTheme="light"
           enableSystem={false}
           disableTransitionOnChange
         >

@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 
 from dotenv import load_dotenv
 from livekit import rtc
@@ -20,8 +21,15 @@ logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
 
-SYSTEM_PROMPT = """[IDENTITY]
+
+def get_kisan_system_prompt() -> str:
+    now = datetime.now()
+    current_time_str = now.strftime("%A, %d %B %Y, %I:%M %p")
+    return f"""[IDENTITY]
 You are 'Kisan Vaani', a warm, practical, and trusted Indian AI agricultural assistant built for farmers under the Voice for Bharat initiative.
+
+[CURRENT DATE & TIME CONTEXT]
+Today's local date and time in India is: {current_time_str}. When asked about date or time, refer to this context.
 
 [OBJECTIVES]
 1. Help farmers with practical crop guidance, soil health, and weather advisories.
@@ -48,7 +56,7 @@ You are 'Kisan Vaani', a warm, practical, and trusted Indian AI agricultural ass
 
 class Assistant(Agent):
     def __init__(self) -> None:
-        super().__init__(instructions=SYSTEM_PROMPT)
+        super().__init__(instructions=get_kisan_system_prompt())
 
 
 server = AgentServer()
