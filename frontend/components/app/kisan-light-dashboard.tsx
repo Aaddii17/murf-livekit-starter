@@ -280,7 +280,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
 
       {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS WITH ROUNDED BADGES */}
       
-      {/* Bottom Left: Shri Shivraj Singh Chouhan (MUCH LARGER CUTOUT) */}
+      {/* Bottom Left: Shri Shivraj Singh Chouhan (MUCH LARGER CUTOUT & NAME TAG) */}
       <div className="fixed bottom-0 left-0 z-40 flex flex-col items-start pointer-events-none">
         <div className="relative h-80 w-64 sm:h-[460px] sm:w-[380px] lg:h-[580px] lg:w-[460px] drop-shadow-2xl">
           <Image
@@ -291,17 +291,17 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto ml-4 mb-4 rounded-full border-2 border-emerald-400/60 bg-slate-950/95 px-5 py-2.5 text-white shadow-2xl backdrop-blur-md">
-          <h4 className="text-sm font-black text-amber-300">
+        <div className="pointer-events-auto ml-5 mb-5 rounded-full border-2 border-emerald-400 bg-slate-950/95 px-7 py-3.5 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] backdrop-blur-md">
+          <h4 className="text-base font-black tracking-wide text-amber-300 md:text-lg">
             Shri Shivraj Singh Chouhan
           </h4>
-          <p className="text-xs font-bold text-emerald-300">
+          <p className="text-xs font-extrabold text-emerald-300 md:text-sm">
             Ministry of Agriculture
           </p>
         </div>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji (MUCH LARGER CUTOUT) */}
+      {/* Bottom Right: Shri Narendra Modi Ji (MUCH LARGER CUTOUT & NAME TAG) */}
       <div className="fixed bottom-0 right-0 z-40 flex flex-col items-end pointer-events-none">
         <div className="relative h-80 w-72 sm:h-[460px] sm:w-[400px] lg:h-[580px] lg:w-[500px] drop-shadow-2xl">
           <Image
@@ -312,11 +312,11 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto mr-4 mb-4 rounded-full border-2 border-amber-400/60 bg-slate-950/95 px-5 py-2.5 text-white shadow-2xl backdrop-blur-md text-right">
-          <h4 className="text-sm font-black text-amber-300">
+        <div className="pointer-events-auto mr-5 mb-5 rounded-full border-2 border-amber-400 bg-slate-950/95 px-7 py-3.5 text-white shadow-[0_0_30px_rgba(251,191,36,0.4)] backdrop-blur-md text-right">
+          <h4 className="text-base font-black tracking-wide text-amber-300 md:text-lg">
             Shri Narendra Modi Ji
           </h4>
-          <p className="text-xs font-bold text-amber-200">
+          <p className="text-xs font-extrabold text-amber-200 md:text-sm">
             Hon&apos;ble Prime Minister of India
           </p>
         </div>
