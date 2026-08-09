@@ -15,7 +15,6 @@ import {
   Calendar,
   Phone,
   Sun,
-  Moon,
   Cloud,
 } from 'lucide-react';
 
@@ -52,15 +51,6 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
       setCallEndedState(false);
     }
   }, [isConnected]);
-
-  // Determine Day vs Night (Day: 6 AM to 6 PM, Night: 6 PM to 6 AM)
-  const currentHour = currentTime ? currentTime.getHours() : 12;
-  const isDayTime = currentHour >= 6 && currentHour < 18;
-
-  // Calculate Sun / Moon position trajectory across the sky
-  const sunMoonProgress = isDayTime
-    ? ((currentHour - 6) / 12) * 100
-    : (((currentHour >= 18 ? currentHour - 18 : currentHour + 6) / 12) * 100);
 
   // Handle Start Call with Mic Permission Check
   const handleStartCall = async () => {
@@ -109,48 +99,30 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden font-sans text-slate-900 selection:bg-emerald-200">
       
-      {/* 🖼️ BACKGROUND CANVAS (SKY TOP HALF + GREEN FARM BOTTOM HALF - MATCHING SS IMAGE 2 EXACTLY) */}
+      {/* 🖼️ ALWAYS BRIGHT DAYLIGHT SKY + GREEN FARM FIELD (EXACT MATCH TO WEBSITE DASHBOARD VIDEO) */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         
-        {/* TOP HALF: SKY GRADIENT WITH DYNAMIC REAL-TIME SUN / MOON SYSTEM */}
-        <div
-          className={`relative h-[48vh] w-full transition-colors duration-1000 ${
-            isDayTime
-              ? 'bg-gradient-to-b from-sky-400 via-sky-300 to-sky-200'
-              : 'bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900'
-          }`}
-        >
-          {/* Real-time Trajectory Sun or Moon */}
-          <div
-            className="absolute top-6 transition-all duration-1000 z-10"
-            style={{ left: `${Math.max(8, Math.min(84, sunMoonProgress))}%` }}
-          >
-            {isDayTime ? (
-              <div className="relative flex items-center justify-center">
-                <div className="absolute size-32 animate-ping rounded-full bg-amber-300/40 opacity-75" />
-                <div className="absolute size-24 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-100 shadow-[0_0_80px_rgba(251,191,36,0.9)]" />
-                <Sun className="relative size-14 text-amber-500 animate-spin-slow" />
-              </div>
-            ) : (
-              <div className="relative flex items-center justify-center">
-                <div className="absolute size-28 animate-pulse rounded-full bg-slate-200/30 opacity-60" />
-                <div className="size-16 rounded-full bg-slate-200 shadow-[0_0_50px_rgba(226,232,240,0.8)]" />
-                <Moon className="absolute size-10 text-slate-400" />
-              </div>
-            )}
+        {/* TOP HALF: BRIGHT SKY BLUE WITH SUN & DRIFTING CLOUDS */}
+        <div className="relative h-[48vh] w-full bg-gradient-to-b from-[#38bdf8] via-[#7dd3fc] to-[#bae6fd]">
+          
+          {/* Glowing Golden Sun */}
+          <div className="absolute top-6 right-20 flex items-center justify-center md:right-48 z-10">
+            <div className="absolute size-32 animate-ping rounded-full bg-amber-300/50 opacity-80" />
+            <div className="absolute size-24 rounded-full bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-100 shadow-[0_0_80px_rgba(251,191,36,0.9)]" />
+            <Sun className="relative size-14 text-amber-500 animate-spin-slow" />
           </div>
 
-          {/* Fluffy Clouds */}
-          <div className="absolute top-8 left-10 opacity-90">
-            <Cloud className={`size-20 ${isDayTime ? 'text-white/95' : 'text-slate-400/40'} drop-shadow-md`} />
+          {/* Fluffy White Clouds */}
+          <div className="absolute top-8 left-10 opacity-95">
+            <Cloud className="size-24 text-white drop-shadow-md" />
           </div>
-          <div className="absolute top-16 right-56 opacity-80">
-            <Cloud className={`size-16 ${isDayTime ? 'text-white/90' : 'text-slate-500/30'} drop-shadow-sm`} />
+          <div className="absolute top-16 right-64 opacity-90">
+            <Cloud className="size-20 text-white drop-shadow-sm" />
           </div>
 
           {/* 🕊️ FLYING WHITE DOVES IN FORMATION (From Kisan vidoe.mp4) */}
           <div className="absolute top-6 left-0 w-full z-15">
-            <svg className="h-20 w-full" viewBox="0 0 1200 120" fill="none">
+            <svg className="h-24 w-full" viewBox="0 0 1200 120" fill="none">
               <g className="animate-bird-fly-1">
                 <path
                   d="M 0 35 Q 15 15 30 35 Q 45 15 60 35 Q 45 38 30 35 Q 15 38 0 35 Z"
@@ -178,19 +150,19 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
 
         {/* BOTTOM HALF: LUSH GREEN FARM FIELD WITH FARMER FAMILY & GREEN TRACTOR */}
-        <div className="relative h-[52vh] w-full bg-gradient-to-b from-emerald-600 via-emerald-700 to-green-900">
+        <div className="relative h-[52vh] w-full bg-gradient-to-b from-[#15803d] via-[#166534] to-[#14532d]">
           
-          {/* Seamless Horizon Blur Mask to eliminate hard border lines */}
-          <div className="absolute -top-12 left-0 h-24 w-full bg-gradient-to-b from-sky-200/90 via-emerald-500/40 to-emerald-700/90 backdrop-blur-[2px] z-5" />
+          {/* Seamless Soft Horizon Gradient Transition */}
+          <div className="absolute -top-12 left-0 h-24 w-full bg-gradient-to-b from-[#bae6fd] via-[#4ade80]/40 to-[#15803d] backdrop-blur-[1px] z-5" />
 
           {/* Green Crop Rows Pattern */}
-          <svg className="absolute inset-0 h-full w-full opacity-30 text-emerald-300" viewBox="0 0 1440 400" fill="currentColor">
+          <svg className="absolute inset-0 h-full w-full opacity-35 text-emerald-300" viewBox="0 0 1440 400" fill="currentColor">
             <path d="M0,100 Q360,150 720,100 T1440,100 L1440,400 L0,400 Z" />
           </svg>
 
           {/* 👨‍👩‍👦 FARMER FAMILY TRANSPARENT CUTOUT (Left Side Background - From SS Image 2) */}
-          <div className="absolute bottom-4 left-0 z-10 hidden sm:block md:left-8">
-            <div className="relative h-72 w-96 md:h-96 md:w-[460px] drop-shadow-2xl">
+          <div className="absolute bottom-6 left-2 z-10 hidden sm:block md:left-8">
+            <div className="relative h-72 w-96 md:h-[380px] md:w-[460px] drop-shadow-2xl">
               <Image
                 src="/farmer_family.png"
                 alt="Farmer Family"
@@ -202,8 +174,8 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
           </div>
 
           {/* 🚜 GREEN JOHN DEERE TRACTOR TRANSPARENT CUTOUT (Right Side Background - From SS Image 2) */}
-          <div className="absolute bottom-4 right-0 z-10 hidden sm:block md:right-8">
-            <div className="relative h-72 w-96 md:h-96 md:w-[480px] drop-shadow-2xl">
+          <div className="absolute bottom-6 right-2 z-10 hidden sm:block md:right-8">
+            <div className="relative h-72 w-96 md:h-[380px] md:w-[480px] drop-shadow-2xl">
               <Image
                 src="/green_tractor.png"
                 alt="Green John Deere Tractor"
