@@ -5,14 +5,15 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from livekit.agents import (
-    AutoSubscribe,
+    AgentSession,
+    Agent,
     JobContext,
     WorkerOptions,
+    AutoSubscribe,
     cli,
     llm,
     tokenize,
 )
-from livekit.agents.pipeline import VoicePipelineAgent
 from livekit.plugins import deepgram, google, murf, silero
 from livekit.plugins.turn_detector import MultilingualModel
 
@@ -31,54 +32,51 @@ logger.setLevel(logging.INFO)
 # Initialize SQLite database schema
 db.init_db()
 
-class KisanVaaniTools:
-    """LiveKit LLM Tools for Kisan Vaani SQLite Memory Persistence (Day 4 Requirement)."""
-
-    @llm.ai_callable(description="Look up stored farmer profile and facts from SQLite memory database.")
-    def lookup_farmer_profile(self, user_id: str = "default_farmer") -> str:
-        profile = db.get_farmer(user_id)
-        if profile and profile.get("name"):
-            return (
-                f"FOUND FARMER RECORD in SQLite:\n"
-                f"Name: {profile.get('name')}\n"
-                f"District: {profile.get('district')}\n"
-                f"Crops: {profile.get('crops_grown')}\n"
-                f"Land Size: {profile.get('land_size')}\n"
-                f"Irrigation: {profile.get('irrigation_type')}\n"
-                f"Last Topic: {profile.get('last_topic')}\n"
-                f"Last Interaction: {profile.get('last_interaction')}"
-            )
-        return "NO PRIOR RECORD FOUND in SQLite memory. This is a new caller."
-
-    @llm.ai_callable(
-        description="Save or update farmer details into SQLite database. ALWAYS ASK EXPLICIT CONSENT BEFORE CALLING THIS FUNCTION!"
-    )
-    def save_farmer_profile(
-        self,
-        name: str,
-        district: str = "",
-        crops_grown: str = "",
-        land_size: str = "",
-        irrigation_type: str = "",
-        last_topic: str = "",
-        user_id: str = "default_farmer"
-    ) -> str:
-        db.save_farmer(
-            user_id=user_id,
-            name=name,
-            district=district,
-            crops_grown=crops_grown,
-            land_size=land_size,
-            irrigation_type=irrigation_type,
-            last_topic=last_topic,
-            consent_given=1
+# Define LiveKit LLM Tools for Kisan Vaani SQLite Memory Persistence (Day 4 Requirement)
+@llm.ai_callable(description="Look up stored farmer profile and facts from SQLite memory database.")
+def lookup_farmer_profile(user_id: str = "default_farmer") -> str:
+    profile = db.get_farmer(user_id)
+    if profile and profile.get("name"):
+        return (
+            f"FOUND FARMER RECORD in SQLite:\n"
+            f"Name: {profile.get('name')}\n"
+            f"District: {profile.get('district')}\n"
+            f"Crops: {profile.get('crops_grown')}\n"
+            f"Land Size: {profile.get('land_size')}\n"
+            f"Irrigation: {profile.get('irrigation_type')}\n"
+            f"Last Topic: {profile.get('last_topic')}\n"
+            f"Last Interaction: {profile.get('last_interaction')}"
         )
-        return f"SUCCESS: Saved farmer profile for {name} to SQLite memory database."
+    return "NO PRIOR RECORD FOUND in SQLite memory. This is a new caller."
 
-    @llm.ai_callable(description="Forget caller data and wipe farmer record from SQLite database if requested by farmer.")
-    def forget_farmer_profile(self, user_id: str = "default_farmer") -> str:
-        db.delete_farmer(user_id)
-        return "SUCCESS: Caller profile completely erased from SQLite memory database."
+@llm.ai_callable(
+    description="Save or update farmer details into SQLite database. ALWAYS ASK EXPLICIT CONSENT BEFORE CALLING THIS FUNCTION!"
+)
+def save_farmer_profile(
+    name: str,
+    district: str = "",
+    crops_grown: str = "",
+    land_size: str = "",
+    irrigation_type: str = "",
+    last_topic: str = "",
+    user_id: str = "default_farmer"
+) -> str:
+    db.save_farmer(
+        user_id=user_id,
+        name=name,
+        district=district,
+        crops_grown=crops_grown,
+        land_size=land_size,
+        irrigation_type=irrigation_type,
+        last_topic=last_topic,
+        consent_given=1
+    )
+    return f"SUCCESS: Saved farmer profile for {name} to SQLite memory database."
+
+@llm.ai_callable(description="Forget caller data and wipe farmer record from SQLite database if requested by farmer.")
+def forget_farmer_profile(user_id: str = "default_farmer") -> str:
+    db.delete_farmer(user_id)
+    return "SUCCESS: Caller profile completely erased from SQLite memory database."
 
 
 def get_kisan_system_prompt(existing_profile: dict = None) -> str:
@@ -109,11 +107,11 @@ YOUR CORE DUTIES & DAY 4 MEMORY RULES:
 2. EXPLICIT CONSENT BEFORE SAVING (DAY 4 MANDATORY RULE):
    - BEFORE saving any farmer information, ALWAYS ask for explicit permission in Hindi!
    - Ask: "क्या मैं आपकी यह जानकारी (नाम, फसल और क्षेत्र) भविष्य के लिए याद रख सकता हूँ?"
-   - IF the farmer says YES -> Call the `save_farmer_profile` function with their details.
+   - IF the farmer says YES -> Call `save_farmer_profile` tool with their details.
    - IF the farmer says NO -> DO NOT call `save_farmer_profile`. Respect their privacy completely!
 
 3. FORGET ME TOOL (DAY 4 ADVANCED RULE):
-   - IF the farmer asks "Meri jankari bhool jao" or "Delete my data", call `forget_farmer_profile` and confirm to them that their record has been wiped.
+   - IF the farmer asks "Meri jankari bhool jao" or "Delete my data", call `forget_farmer_profile` tool and confirm to them that their record has been wiped.
 
 4. SCOPE & DOMAIN:
    - Provide advisory on Wheat (गेहूँ), Paddy (धान), Cotton, Mandi Rates (e-NAM), Weather, Pest Control, Fertilizers, and Government Schemes (PM-Kisan).
@@ -137,11 +135,15 @@ async def entrypoint(ctx: JobContext):
         logger.info("No prior farmer profile found in SQLite DB.")
 
     system_prompt = get_kisan_system_prompt(farmer_profile)
-    tools = KisanVaaniTools()
 
-    # Configure Day 4 Multilocale Speech Pipeline
-    session_agent = VoicePipelineAgent(
-        vad=silero.VAD.load(),
+    # Initial Greeting
+    if farmer_profile and farmer_profile.get("name"):
+        greeting_text = f"नमस्ते {farmer_profile['name']} जी! किसान वाणी में आपका पुनः स्वागत है। पिछली बार हमने आपके {farmer_profile.get('crops_grown', 'फ़सल')} के बारे में बात की थी। आज मैं आपकी क्या सहायता कर सकता हूँ?"
+    else:
+        greeting_text = "नमस्ते! मैं किसान वाणी हूँ, आपका खेती-बाड़ी सहायक। आपका शुभ नाम क्या है और आप कौन सी फ़सल उगाते हैं?"
+
+    # Configure Day 4 Multilocale Speech Pipeline Agent Session
+    session = AgentSession(
         stt=deepgram.STT(model="nova-3", language="multi"),
         llm=google.LLM(model="gemini-2.5-flash"),
         tts=murf.TTS(
@@ -150,24 +152,19 @@ async def entrypoint(ctx: JobContext):
             tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
             text_pacing=True,
         ),
-        turn_detector=MultilingualModel(),
-        fnc_ctx=tools,
-        chat_ctx=llm.ChatContext().append(
-            role="system",
-            text=system_prompt,
-        ),
+        turn_detection=MultilingualModel(),
+        vad=silero.VAD.load(),
+        tools=[lookup_farmer_profile, save_farmer_profile, forget_farmer_profile],
         preemptive_generation=True,
     )
 
-    session_agent.start(ctx.room)
-
-    # Initial Greeting
-    if farmer_profile and farmer_profile.get("name"):
-        greeting_text = f"नमस्ते {farmer_profile['name']} जी! किसान वाणी में आपका पुनः स्वागत है। पिछली बार हमने आपके {farmer_profile.get('crops_grown', 'फ़सल')} के बारे में बात की थी। आज मैं आपकी क्या सहायता कर सकता हूँ?"
-    else:
-        greeting_text = "नमस्ते! मैं किसान वाणी हूँ, आपका खेती-बाड़ी सहायक। आपका शुभ नाम क्या है और आप कौन सी फ़सल उगाते हैं?"
-
-    await session_agent.say(greeting_text, allow_interruptions=True)
+    await session.start(
+        room=ctx.room,
+        agent=Agent(
+            instructions=system_prompt,
+            greeting=greeting_text,
+        ),
+    )
 
 
 if __name__ == "__main__":
