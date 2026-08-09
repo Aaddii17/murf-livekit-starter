@@ -17,20 +17,19 @@ export function ViewController({ appConfig }: ViewControllerProps) {
       {/* Primary Light-Theme Agricultural Dashboard & Landing */}
       <KisanLightDashboard onStartCall={start} />
 
-      {/* Active Session Audio Visualizer & Control Layer when connected */}
+      {/* Active Session View Overlay (Text Chat, Live Transcript, Audio Waveform & Controls) when connected */}
       {isConnected && (
-        <div className="fixed inset-x-0 bottom-24 z-40 flex justify-center pointer-events-none">
-          <div className="pointer-events-auto rounded-3xl border border-emerald-300/80 bg-white/95 p-4 shadow-2xl backdrop-blur-md max-w-lg w-full mx-4">
-            <AgentSessionView_01
-              supportsChatInput={appConfig.supportsChatInput}
-              supportsVideoInput={appConfig.supportsVideoInput}
-              supportsScreenShare={appConfig.supportsScreenShare}
-              isPreConnectBufferEnabled={appConfig.isPreConnectBufferEnabled}
-              audioVisualizerType="bar"
-              audioVisualizerColor="#059669"
-              audioVisualizerBarCount={5}
-            />
-          </div>
+        <div className="fixed inset-0 z-50 flex flex-col justify-between bg-slate-950/80 p-4 backdrop-blur-md md:p-8">
+          <AgentSessionView_01
+            supportsChatInput={appConfig.supportsChatInput}
+            supportsVideoInput={appConfig.supportsVideoInput}
+            supportsScreenShare={appConfig.supportsScreenShare}
+            isPreConnectBufferEnabled={appConfig.isPreConnectBufferEnabled}
+            audioVisualizerType="bar"
+            audioVisualizerColor="#10b981"
+            audioVisualizerBarCount={7}
+            className="h-full w-full max-w-5xl mx-auto"
+          />
         </div>
       )}
     </div>

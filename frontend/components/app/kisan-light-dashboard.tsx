@@ -281,9 +281,9 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
 
       {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS WITH ROUNDED BADGES */}
       
-      {/* Bottom Left: Shri Shivraj Singh Chouhan */}
+      {/* Bottom Left: Shri Shivraj Singh Chouhan (BIGGER CUTOUT) */}
       <div className="fixed bottom-0 left-0 z-40 flex flex-col items-start pointer-events-none">
-        <div className="relative h-64 w-52 sm:h-80 sm:w-64 md:h-[380px] md:w-80 drop-shadow-2xl">
+        <div className="relative h-72 w-56 sm:h-96 sm:w-72 md:h-[460px] md:w-[380px] drop-shadow-2xl">
           <Image
             src="/chouhan_transparent.png"
             alt="Shri Shivraj Singh Chouhan"
@@ -302,9 +302,9 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji */}
+      {/* Bottom Right: Shri Narendra Modi Ji (BIGGER CUTOUT) */}
       <div className="fixed bottom-0 right-0 z-40 flex flex-col items-end pointer-events-none">
-        <div className="relative h-64 w-56 sm:h-80 sm:w-64 md:h-[380px] md:w-80 drop-shadow-2xl">
+        <div className="relative h-72 w-64 sm:h-96 sm:w-80 md:h-[460px] md:w-[420px] drop-shadow-2xl">
           <Image
             src="/modi_transparent.png"
             alt="Shri Narendra Modi Ji"
