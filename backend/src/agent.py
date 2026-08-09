@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import io
+import sqlite3
 from datetime import datetime
 
 if sys.platform == "win32":
@@ -19,6 +20,7 @@ from livekit.agents import (
     cli,
     tokenize,
     room_io,
+    llm,
 )
 from livekit.plugins import murf, silero, deepgram, groq, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
@@ -27,7 +29,134 @@ logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
 
+# =====================================================================
+# STEP 1: SQLITE PERSISTENT DATABASE SYSTEM (kisan_memory.db)
+# =====================================================================
+DB_PATH = "kisan_memory.db"
 
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS farmers (
+            farmer_id TEXT PRIMARY KEY,
+            name TEXT,
+            district TEXT,
+            crops_grown TEXT,
+            land_size TEXT,
+            irrigation_type TEXT,
+            last_topic TEXT,
+            last_interaction TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+    logger.info("Kisan Vaani SQLite memory database initialized.")
+
+
+init_db()
+
+
+def db_lookup_farmer(search_term: str) -> dict | None:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT farmer_id, name, district, crops_grown, land_size, irrigation_type, last_topic, last_interaction FROM farmers WHERE LOWER(name) LIKE ? OR farmer_id = ?",
+        (f"%{search_term.lower()}%", search_term),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {
+            "farmer_id": row[0],
+            "name": row[1],
+            "district": row[2],
+            "crops_grown": row[3],
+            "land_size": row[4],
+            "irrigation_type": row[5],
+            "last_topic": row[6],
+            "last_interaction": row[7],
+        }
+    return None
+
+
+def db_save_farmer(name: str, district: str = "", crops_grown: str = "", land_size: str = "", irrigation_type: str = "", last_topic: str = "") -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    farmer_id = f"FARMER_{name.upper().replace(' ', '_')}"
+    timestamp = datetime.now().strftime("%d %B %Y, %I:%M %p")
+    cursor.execute(
+        """
+        INSERT INTO farmers (farmer_id, name, district, crops_grown, land_size, irrigation_type, last_topic, last_interaction)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(farmer_id) DO UPDATE SET
+            district=excluded.district,
+            crops_grown=excluded.crops_grown,
+            land_size=excluded.land_size,
+            irrigation_type=excluded.irrigation_type,
+            last_topic=excluded.last_topic,
+            last_interaction=excluded.last_interaction
+    """,
+        (farmer_id, name, district, crops_grown, land_size, irrigation_type, last_topic, timestamp),
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"Saved farmer memory record for: {name}")
+    return True
+
+
+def db_forget_farmer(name_or_id: str) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM farmers WHERE LOWER(name) LIKE ? OR farmer_id = ?",
+        (f"%{name_or_id.lower()}%", name_or_id),
+    )
+    count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    logger.info(f"Wiped farmer memory record for: {name_or_id} (rows deleted: {count})")
+    return count > 0
+
+
+# =====================================================================
+# STEP 3: FUNCTION CALLING TOOLS FOR KISAN VAANI MEMORY
+# =====================================================================
+class KisanMemoryTools(llm.FunctionContext):
+    @llm.ai_callable(description="Look up existing farmer profile from database by name or ID")
+    def lookup_farmer(self, farmer_name: str) -> str:
+        record = db_lookup_farmer(farmer_name)
+        if record:
+            return f"FOUND RECORD: Name={record['name']}, District={record['district']}, Crops={record['crops_grown']}, LandSize={record['land_size']}, Irrigation={record['irrigation_type']}, LastTopic={record['last_topic']}, LastInteraction={record['last_interaction']}"
+        return f"NO RECORD FOUND for farmer name: {farmer_name}. This is a new caller."
+
+    @llm.ai_callable(description="Save farmer profile facts to database ONLY AFTER farmer gives explicit consent")
+    def save_farmer_profile(
+        self,
+        name: str,
+        district: str = "Unknown",
+        crops_grown: str = "Unknown",
+        land_size: str = "Unknown",
+        irrigation_type: str = "Unknown",
+        last_topic: str = "General farming guidance",
+    ) -> str:
+        success = db_save_farmer(name, district, crops_grown, land_size, irrigation_type, last_topic)
+        if success:
+            return f"Successfully saved memory for {name} ({district}, Crops: {crops_grown}, Land: {land_size}, Irrigation: {irrigation_type})."
+        return "Failed to save profile."
+
+    @llm.ai_callable(description="Wipe farmer profile from database if caller asks to be forgotten ('forget me' or 'मेरी जानकारी हटा दो')")
+    def forget_farmer(self, farmer_name: str) -> str:
+        wiped = db_forget_farmer(farmer_name)
+        if wiped:
+            return f"Memory for {farmer_name} has been completely wiped from database."
+        return f"No memory record found for {farmer_name} to delete."
+
+
+# =====================================================================
+# SYSTEM PROMPT WITH DAY 4 MEMORY & CONSENT RULES
+# =====================================================================
 def get_kisan_system_prompt() -> str:
     now = datetime.now()
     current_time_str = now.strftime("%A, %d %B %Y, %I:%M %p")
@@ -35,34 +164,40 @@ def get_kisan_system_prompt() -> str:
 You are 'Kisan Vaani', a warm, practical, and trusted Indian AI agricultural assistant built for farmers under the Voice for Bharat initiative.
 
 [CURRENT DATE & TIME CONTEXT]
-Today's local date and time in India is: {current_time_str}. When asked about date or time, refer to this context.
+Today's local date and time in India is: {current_time_str}.
+
+[DAY 4 MEMORY & CONSENT RULES]
+1. LOOKUP CALLER: When a caller tells you their name (e.g. Ramesh), call 'lookup_farmer(farmer_name)' to check if you remember them.
+2. RETURNING CALLER GREETING: If 'lookup_farmer' finds a record (e.g., Ramesh from Noida growing wheat on 5 acres), welcome them back warmly by name in Devanagari Hindi! Reference their saved facts (e.g. "नमस्ते रमेश जी! किसान वाणी में आपका पुनः स्वागत है। पिछली बार हमने आपके 5 एकड़ गेहूँ के खेत के बारे में बात की थी।")
+3. CONSENT BEFORE SAVING (MANDATORY RULE): When a caller shares facts (Name, District, Crops, Land Size, Irrigation), ALWAYS ASK FOR PERMISSION BEFORE SAVING!
+   Example: "क्या मैं आपकी यह जानकारी (नाम, फसल और सिंचाई) भविष्य के लिए याद रख सकता हूँ?"
+   - If caller says YES ➔ Call 'save_farmer_profile' function immediately!
+   - If caller says NO ➔ Do NOT save any data!
+4. FORGET ME TOOL: If caller asks to be forgotten ("forget me" or "मेरी जानकारी डिलीट कर दो"), call 'forget_farmer(farmer_name)' and confirm that their memory has been deleted.
 
 [OBJECTIVES]
 1. Help farmers with practical crop guidance, soil health, and weather advisories.
 2. Provide estimated mandi market prices clearly indicating they are current estimates as of today.
-3. Assist in simple, accessible voice interactions in the user's preferred language.
-
-[KNOWLEDGE]
-- You know Indian crop seasons (Kharif, Rabi, Zaid), organic farming, weather trends, and general mandi price ranges.
-- You do NOT possess private banking info, land records, or medical/legal expertise.
 
 [LANGUAGE & SCRIPT]
-- Respond in native scripts: Write Hindi in Devanagari script (e.g., "नमस्ते! दिल्ली में आज मौसम साफ है।"), English in English, and Tamil in Tamil.
-- Match the user's spoken language naturally.
+- ALWAYS write Hindi in Devanagari script (e.g., "नमस्ते! मैं किसान वाणी हूँ।"), never romanized (never write "namaste").
+- Same rule for all non-English languages.
 
 [GUARDRAILS & REFUSALS]
-1. MANDI PRICE GUARDRAIL: Never state a market price as a guaranteed fact without adding "e-NAM के अनुसार आज का अनुमानित भाव है" (estimated price as of today).
-2. PESTICIDE / CHEMICAL GUARDRAIL: Never prescribe dangerous chemical dosages or guarantee disease diagnoses. Always advise consulting a local Krishi Vigyan Kendra (KVK) officer for physical crop inspection.
-3. OUT OF SCOPE & ESCALATION: Refuse stock market tips, medical advice, banking OTPs/loans, or non-farming topics. Say: "मैं खेती-बाड़ी सहायक हूँ और इस विषय पर सलाह नहीं दे सकता। कृपया किसान कॉल सेंटर टोल-फ्री 1800-180-1551 पर संपर्क करें।"
+1. MANDI PRICE GUARDRAIL: Add "e-NAM के अनुसार आज का अनुमानित भाव है".
+2. OUT OF SCOPE: Say "मैं खेती-बाड़ी सहायक हूँ और इस विषय पर सलाह नहीं दे सकता। कृपया किसान कॉल सेंटर टोल-फ्री 1800-180-1551 पर संपर्क करें।"
 
 [STYLE FOR VOICE]
-- Keep responses short, conversational, and direct (1 to 2 short sentences max, under 20 words).
+- Keep responses short, conversational, and direct (1 to 2 short sentences max).
 - Never use screen formatting like bullet points, brackets, emojis, or symbols."""
 
 
 class Assistant(Agent):
     def __init__(self) -> None:
-        super().__init__(instructions=get_kisan_system_prompt())
+        super().__init__(
+            instructions=get_kisan_system_prompt(),
+            tools=KisanMemoryTools(),
+        )
 
 
 server = AgentServer()
@@ -120,9 +255,9 @@ async def my_agent(ctx: JobContext):
     # Connect to room
     await ctx.connect()
 
-    # Send initial greeting in Devanagari Hindi for natural Murf multi-locale TTS
+    # Initial greeting
     await session.say(
-        "नमस्ते! मैं किसान वाणी हूँ, आपका खेती बाड़ी सहायक। आप कौनसी फसल या मौसम के बारे में जानना चाहते हैं?",
+        "नमस्ते! मैं किसान वाणी हूँ, आपका खेती बाड़ी सहायक। आपका क्या नाम है और आप कौनसी फसल उगा रहे हैं?",
         allow_interruptions=True,
     )
 
