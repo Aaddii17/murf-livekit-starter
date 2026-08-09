@@ -322,14 +322,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
       </div>
 
-      {/* ⚡ BOTTOM CENTER POWERED BY LOGO BADGES */}
-      <footer className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 hidden md:flex items-center gap-3 rounded-full border border-amber-400/30 bg-slate-950/90 px-5 py-2 text-xs font-bold shadow-2xl backdrop-blur-md">
-        <span className="text-slate-400">Powered by:</span>
-        <span className="rounded-lg bg-slate-900 border border-amber-400/40 px-2.5 py-1 text-amber-300 font-extrabold">MURF.AI</span>
-        <span className="rounded-lg bg-slate-900 border border-orange-400/40 px-2.5 py-1 text-orange-400 font-extrabold">LIVEKIT</span>
-        <span className="rounded-lg bg-slate-900 border border-cyan-400/40 px-2.5 py-1 text-cyan-300 font-extrabold">DEEPGRAM</span>
-        <span className="rounded-lg bg-slate-900 border border-emerald-400/40 px-2.5 py-1 text-emerald-300 font-extrabold">GROQ</span>
-      </footer>
+
 
     </div>
   );
