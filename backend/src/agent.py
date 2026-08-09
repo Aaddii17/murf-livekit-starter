@@ -23,7 +23,7 @@ from livekit.agents import (
     room_io,
     llm,
 )
-from livekit.plugins import murf, silero, deepgram, google, noise_cancellation
+from livekit.plugins import murf, silero, deepgram, groq, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("agent")
@@ -203,10 +203,10 @@ async def my_agent(ctx: JobContext):
         "room": ctx.room.name,
     }
 
-    # Official Google Gemini LLM plugin for Day 4 (1,000,000 TPM limit)
-    llm_provider = google.LLM(
-        model="gemini-2.5-flash",
-        api_key=os.getenv("GOOGLE_API_KEY"),
+    # High-throughput Groq Llama 3.3 70B LLM (100k TPM)
+    llm_provider = groq.LLM(
+        model="llama-3.3-70b-versatile",
+        api_key=os.getenv("GROQ_API_KEY"),
     )
 
     # Official Murf AI Multilingual Session
