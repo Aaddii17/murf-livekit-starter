@@ -14,7 +14,6 @@ import {
   Clock,
   Calendar,
   Phone,
-  Sparkles,
 } from 'lucide-react';
 
 interface KisanLightDashboardProps {
@@ -98,21 +97,21 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden font-sans text-slate-100 selection:bg-amber-500">
       
-      {/* 🖼️ HIGH-TECH CINEMATIC AGRITECH BACKGROUND (kisan_bg.jpg) */}
+      {/* 🖼️ REALISTIC FARM COVER BACKGROUND (kisan_cover.jpg) */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/kisan_bg.jpg"
-          alt="Kisan Vaani AgriTech Background"
+          src="/kisan_cover.jpg"
+          alt="Kisan Vaani Realistic Farm Cover Background"
           fill
           className="object-cover object-center"
           priority
         />
-        {/* Subtle Overlay to enhance readability of controls */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/30 to-slate-950/70 backdrop-blur-[1px]" />
+        {/* Subtle Dark Gradient Overlay for Portal Contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/50 via-slate-950/20 to-slate-950/60 backdrop-blur-[0.5px]" />
       </div>
 
       {/* 🔝 TOP HEADER BAR */}
-      <header className="relative z-30 flex flex-wrap items-center justify-between gap-4 border-b border-amber-500/30 bg-slate-950/80 px-4 py-3 shadow-2xl backdrop-blur-md md:px-8">
+      <header className="relative z-30 flex flex-wrap items-center justify-between gap-4 border-b border-amber-500/30 bg-slate-950/85 px-4 py-3 shadow-2xl backdrop-blur-md md:px-8">
         {/* Left Branding with Official Kisan Diwas Logo */}
         <div className="flex items-center gap-3">
           <div className="relative size-14 overflow-hidden rounded-full border-2 border-amber-400 shadow-lg shadow-amber-500/20">
@@ -215,7 +214,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
 
         {/* Central Sprout Avatar Circle */}
-        <div className="relative my-4 flex size-44 items-center justify-center rounded-full border-4 border-emerald-400 bg-gradient-to-tr from-slate-900 via-emerald-950 to-slate-900 shadow-[0_0_50px_rgba(16,185,129,0.3)] md:size-52">
+        <div className="relative my-4 flex size-44 items-center justify-center rounded-full border-4 border-emerald-400 bg-gradient-to-tr from-slate-900 via-emerald-950 to-slate-900 shadow-[0_0_50px_rgba(16,185,129,0.4)] md:size-52">
           {currentStateName === 'Speaking' && (
             <div className="absolute inset-0 size-full rounded-full border-4 border-emerald-400 animate-ping opacity-60" />
           )}
@@ -237,16 +236,16 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             <span className="w-full text-xs font-bold text-amber-300 uppercase tracking-widest mb-1 drop-shadow-md">
               Ask Kisan Vaani About:
             </span>
-            <span className="rounded-full bg-slate-900/80 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
+            <span className="rounded-full bg-slate-900/85 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
               🌾 Wheat & Paddy Mandi Rates
             </span>
-            <span className="rounded-full bg-slate-900/80 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
+            <span className="rounded-full bg-slate-900/85 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
               🐛 Pest Control & Fertilizers
             </span>
-            <span className="rounded-full bg-slate-900/80 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
+            <span className="rounded-full bg-slate-900/85 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
               ☀️ Local Weather Forecast
             </span>
-            <span className="rounded-full bg-slate-900/80 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
+            <span className="rounded-full bg-slate-900/85 border border-emerald-400/40 px-3.5 py-1 text-xs font-bold text-emerald-200 shadow-md hover:bg-emerald-900/50 transition-colors backdrop-blur-xs">
               📗 PM-Kisan Schemes
             </span>
           </div>
@@ -258,7 +257,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             <button
               onClick={handleStartCall}
               disabled={session.isConnecting}
-              className="group relative flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 px-10 py-4 text-lg font-black text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all hover:scale-105 hover:from-emerald-400 hover:to-green-500 active:scale-95 disabled:opacity-50"
+              className="group relative flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 px-10 py-4 text-lg font-black text-slate-950 shadow-[0_0_35px_rgba(16,185,129,0.6)] transition-all hover:scale-105 hover:from-emerald-400 hover:to-green-500 active:scale-95 disabled:opacity-50"
             >
               <Phone className="size-6 animate-bounce text-slate-950" />
               <span>{callEndedState ? '🔄 Start New Call' : '🌾 Baat Karo / Start Call'}</span>
@@ -273,7 +272,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             </button>
           )}
 
-          <p className="text-xs font-bold text-slate-300 drop-shadow-md">
+          <p className="text-xs font-bold text-slate-200 drop-shadow-md">
             Supports Hindi • Hinglish • English • Tamil
           </p>
         </div>
@@ -281,7 +280,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
 
       {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS WITH ROUNDED BADGES */}
       
-      {/* Bottom Left: Shri Shivraj Singh Chouhan (BIGGER CUTOUT) */}
+      {/* Bottom Left: Shri Shivraj Singh Chouhan */}
       <div className="fixed bottom-0 left-0 z-40 flex flex-col items-start pointer-events-none">
         <div className="relative h-72 w-56 sm:h-96 sm:w-72 md:h-[460px] md:w-[380px] drop-shadow-2xl">
           <Image
@@ -302,7 +301,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji (BIGGER CUTOUT) */}
+      {/* Bottom Right: Shri Narendra Modi Ji */}
       <div className="fixed bottom-0 right-0 z-40 flex flex-col items-end pointer-events-none">
         <div className="relative h-72 w-64 sm:h-96 sm:w-80 md:h-[460px] md:w-[420px] drop-shadow-2xl">
           <Image
@@ -323,7 +322,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
       </div>
 
-      {/* ⚡ BOTTOM CENTER POWERED BY LOGO BADGES (From Day 1 High-Tech Poster) */}
+      {/* ⚡ BOTTOM CENTER POWERED BY LOGO BADGES */}
       <footer className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 hidden md:flex items-center gap-3 rounded-full border border-amber-400/30 bg-slate-950/90 px-5 py-2 text-xs font-bold shadow-2xl backdrop-blur-md">
         <span className="text-slate-400">Powered by:</span>
         <span className="rounded-lg bg-slate-900 border border-amber-400/40 px-2.5 py-1 text-amber-300 font-extrabold">MURF.AI</span>
