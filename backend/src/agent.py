@@ -23,7 +23,7 @@ from livekit.agents import (
     room_io,
     llm,
 )
-from livekit.plugins import murf, silero, deepgram, groq, noise_cancellation
+from livekit.plugins import murf, silero, deepgram, google, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("agent")
@@ -57,90 +57,90 @@ def init_db():
 init_db()
 
 
-# Day 4: LLM Function Tools for Memory Lookup & Saving
-class KisanMemoryTools(llm.FunctionContext):
-    def __init__(self):
-        super().__init__()
-
-    @llm.ai_callable(
-        description="Look up a farmer's saved profile facts by name or ID from SQLite memory."
+# Day 4: Async LLM Function Tools for Memory Lookup, Saving & Wiping
+@llm.function_tool(
+    name="lookup_farmer_profile",
+    description="Look up a farmer's saved profile facts by name or ID from SQLite memory.",
+)
+async def lookup_farmer_profile(name_or_id: str) -> str:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    search = f"%{name_or_id.strip()}%"
+    cursor.execute(
+        "SELECT user_id, name, district, crops_grown, land_size, irrigation_type, last_topic, consent_given FROM farmers WHERE LOWER(name) LIKE LOWER(?) OR user_id = ?",
+        (search, name_or_id.strip().lower().replace(" ", "_")),
     )
-    def lookup_farmer_profile(self, name_or_id: str) -> str:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        search = f"%{name_or_id.strip()}%"
-        cursor.execute(
-            "SELECT user_id, name, district, crops_grown, land_size, irrigation_type, last_topic, consent_given FROM farmers WHERE LOWER(name) LIKE LOWER(?) OR user_id = ?",
-            (search, name_or_id.strip().lower().replace(" ", "_")),
-        )
-        row = cursor.fetchone()
-        conn.close()
-        if row:
-            profile = {
-                "found": True,
-                "user_id": row[0],
-                "name": row[1],
-                "district": row[2],
-                "crops_grown": row[3],
-                "land_size": row[4],
-                "irrigation_type": row[5],
-                "last_topic": row[6],
-                "consent_given": bool(row[7]),
-            }
-            logger.info(f"Loaded memory for farmer: {profile}")
-            return json.dumps(profile, ensure_ascii=False)
-        return json.dumps({"found": False, "message": "No caller profile found."})
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        profile = {
+            "found": True,
+            "user_id": row[0],
+            "name": row[1],
+            "district": row[2],
+            "crops_grown": row[3],
+            "land_size": row[4],
+            "irrigation_type": row[5],
+            "last_topic": row[6],
+            "consent_given": bool(row[7]),
+        }
+        logger.info(f"Loaded memory for farmer: {profile}")
+        return json.dumps(profile, ensure_ascii=False)
+    return json.dumps({"found": False, "message": "No caller profile found."})
 
-    @llm.ai_callable(
-        description="Save or update a farmer's profile facts in SQLite memory ONLY AFTER asking and receiving explicit caller consent."
-    )
-    def save_farmer_profile(
-        self,
-        name: str,
-        district: str = "",
-        crops_grown: str = "",
-        land_size: str = "",
-        irrigation_type: str = "",
-        last_topic: str = "",
-    ) -> str:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        user_id = name.strip().lower().replace(" ", "_")
-        cursor.execute(
-            """
-            INSERT INTO farmers (user_id, name, district, crops_grown, land_size, irrigation_type, last_topic, consent_given, last_interaction)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
-            ON CONFLICT(user_id) DO UPDATE SET
-                district=CASE WHEN EXCLUDED.district != '' THEN EXCLUDED.district ELSE district END,
-                crops_grown=CASE WHEN EXCLUDED.crops_grown != '' THEN EXCLUDED.crops_grown ELSE crops_grown END,
-                land_size=CASE WHEN EXCLUDED.land_size != '' THEN EXCLUDED.land_size ELSE land_size END,
-                irrigation_type=CASE WHEN EXCLUDED.irrigation_type != '' THEN EXCLUDED.irrigation_type ELSE irrigation_type END,
-                last_topic=CASE WHEN EXCLUDED.last_topic != '' THEN EXCLUDED.last_topic ELSE last_topic END,
-                consent_given=1,
-                last_interaction=CURRENT_TIMESTAMP
-        """,
-            (user_id, name, district, crops_grown, land_size, irrigation_type, last_topic),
-        )
-        conn.commit()
-        conn.close()
-        logger.info(f"Saved memory for farmer: {name}")
-        return json.dumps({"status": "success", "message": f"Saved profile for {name}"})
 
-    @llm.ai_callable(
-        description="Wipe/forget a farmer's saved profile from SQLite memory when requested by the caller."
+@llm.function_tool(
+    name="save_farmer_profile",
+    description="Save or update a farmer's profile facts in SQLite memory ONLY AFTER asking and receiving explicit caller consent.",
+)
+async def save_farmer_profile(
+    name: str,
+    district: str = "",
+    crops_grown: str = "",
+    land_size: str = "",
+    irrigation_type: str = "",
+    last_topic: str = "",
+) -> str:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    user_id = name.strip().lower().replace(" ", "_")
+    cursor.execute(
+        """
+        INSERT INTO farmers (user_id, name, district, crops_grown, land_size, irrigation_type, last_topic, consent_given, last_interaction)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET
+            district=CASE WHEN EXCLUDED.district != '' THEN EXCLUDED.district ELSE district END,
+            crops_grown=CASE WHEN EXCLUDED.crops_grown != '' THEN EXCLUDED.crops_grown ELSE crops_grown END,
+            land_size=CASE WHEN EXCLUDED.land_size != '' THEN EXCLUDED.land_size ELSE land_size END,
+            irrigation_type=CASE WHEN EXCLUDED.irrigation_type != '' THEN EXCLUDED.irrigation_type ELSE irrigation_type END,
+            last_topic=CASE WHEN EXCLUDED.last_topic != '' THEN EXCLUDED.last_topic ELSE last_topic END,
+            consent_given=1,
+            last_interaction=CURRENT_TIMESTAMP
+    """,
+        (user_id, name, district, crops_grown, land_size, irrigation_type, last_topic),
     )
-    def forget_farmer_profile(self, name_or_id: str) -> str:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        user_id = name_or_id.strip().lower().replace(" ", "_")
-        cursor.execute(
-            "DELETE FROM farmers WHERE user_id = ? OR LOWER(name) = LOWER(?)",
-            (user_id, name_or_id.strip()),
-        )
-        conn.commit()
-        conn.close()
-        logger.info(f"Wiped memory for farmer: {name_or_id}")
-        return json.dumps({"status": "deleted", "message": f"Wiped all records for {name_or_id}"})
+    conn.commit()
+    conn.close()
+    logger.info(f"Saved memory for farmer: {name}")
+    return json.dumps({"status": "success", "message": f"Saved profile for {name}"})
+
+
+@llm.function_tool(
+    name="forget_farmer_profile",
+    description="Wipe/forget a farmer's saved profile from SQLite memory when requested by the caller.",
+)
+async def forget_farmer_profile(name_or_id: str) -> str:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    user_id = name_or_id.strip().lower().replace(" ", "_")
+    cursor.execute(
+        "DELETE FROM farmers WHERE user_id = ? OR LOWER(name) = LOWER(?)",
+        (user_id, name_or_id.strip()),
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"Wiped memory for farmer: {name_or_id}")
+    return json.dumps({"status": "deleted", "message": f"Wiped all records for {name_or_id}"})
 
 
 def get_kisan_system_prompt() -> str:
@@ -154,8 +154,8 @@ Today's local date and time in India is: {current_time_str}.
 
 [DAY 4 PERSISTENT MEMORY & CONSENT RULES]
 1. LOOKUP CALLER: When a caller introduces themselves or shares their name (e.g., "मेरा नाम रमेश है"), call `lookup_farmer_profile(name_or_id)` immediately.
-2. RETURNING CALLER GREETING: If `lookup_farmer_profile` returns a saved profile, greet them warmly by name, mention their saved crops/land size/location from last time, and ask how you can help today! Example: "नमस्ते रमेश जी! किसान वाणी में स्वागत है। पिछली बार हमने आपके 5 एकड़ खेत और ट्यूबवेल सिंचाई के बारे में बात की थी। आज क्या सहायता चाहिए?"
-3. CONSENT BEFORE SAVING: BEFORE saving any new facts (name, crops, land size, district, irrigation), YOU MUST EXPLICITLY ASK PERMISSION: "क्या मैं आपकी यह जानकारी भविष्य के लिए याद रख सकता हूँ?"
+2. RETURNING CALLER GREETING: If `lookup_farmer_profile` returns a saved profile, greet them warmly by name, mention their saved crops/land size/location from last time, and ask how you can help today! Example: "नमस्ते रमेश जी! किसान वाणी में आपका पुनः स्वागत है। पिछली बार हमने नोएडा में आपके 5 एकड़ गेहूँ के खेत के बारे में बात की थी। आज आपको क्या सहायता चाहिए?"
+3. CONSENT BEFORE SAVING: BEFORE saving any new facts (name, crops, land size, district, irrigation), YOU MUST EXPLICITLY ASK PERMISSION: "क्या मैं आपकी यह जानकारी (नाम, फसल और ज़िला) भविष्य के लिए याद रख सकता हूँ?"
    - If caller says YES ➔ Call `save_farmer_profile(...)`.
    - If caller says NO ➔ DO NOT call `save_farmer_profile`. Politely respect their decision.
 4. FORGET ME TOOL: If caller asks to delete or forget their memory ("मेरी जानकारी मिटा दो"), call `forget_farmer_profile(...)` and confirm deletion.
@@ -183,7 +183,7 @@ class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions=get_kisan_system_prompt(),
-            fnc_ctx=KisanMemoryTools(),
+            tools=[lookup_farmer_profile, save_farmer_profile, forget_farmer_profile],
         )
 
 
@@ -203,10 +203,10 @@ async def my_agent(ctx: JobContext):
         "room": ctx.room.name,
     }
 
-    # Ultra-fast Groq LLM plugin
-    llm_provider = groq.LLM(
-        model="llama-3.1-8b-instant",
-        api_key=os.getenv("GROQ_API_KEY"),
+    # Official Google Gemini LLM plugin for Day 4 (1,000,000 TPM limit)
+    llm_provider = google.LLM(
+        model="gemini-2.5-flash",
+        api_key=os.getenv("GOOGLE_API_KEY"),
     )
 
     # Official Murf AI Multilingual Session
