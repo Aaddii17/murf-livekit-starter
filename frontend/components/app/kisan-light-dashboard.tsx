@@ -57,7 +57,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
   const currentHour = currentTime ? currentTime.getHours() : 12;
   const isDayTime = currentHour >= 6 && currentHour < 18;
 
-  // Calculate Sun / Moon progress (0% at 6am/6pm to 100% at 6pm/6am across screen)
+  // Calculate Sun / Moon position (0% at 6am/6pm to 100% at 6pm/6am across screen)
   const sunMoonProgress = isDayTime
     ? ((currentHour - 6) / 12) * 100
     : (((currentHour >= 18 ? currentHour - 18 : currentHour + 6) / 12) * 100);
@@ -109,17 +109,17 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden font-sans text-slate-900 selection:bg-emerald-200">
       
-      {/* ☀️ DYNAMIC DUAL SKY (REAL-TIME SUN / MOON SYSTEM BASED ON LOCAL HOUR) */}
+      {/* ☀️ UPPER DYNAMIC SKY BACKGROUND (REAL-TIME SUN / MOON SYSTEM) */}
       <div
         className={`pointer-events-none absolute inset-0 transition-colors duration-1000 ${
           isDayTime
-            ? 'bg-gradient-to-b from-sky-400 via-sky-200 via-emerald-100 to-amber-50'
-            : 'bg-gradient-to-b from-slate-950 via-indigo-950 via-slate-900 to-emerald-950/70'
+            ? 'bg-gradient-to-b from-sky-400 via-sky-300 to-sky-200'
+            : 'bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900'
         }`}
       >
         {/* Dynamic Trajectory Sun or Moon */}
         <div
-          className="absolute top-8 transition-all duration-1000 z-10"
+          className="absolute top-6 transition-all duration-1000 z-10"
           style={{ left: `${Math.max(8, Math.min(84, sunMoonProgress))}%` }}
         >
           {isDayTime ? (
@@ -138,17 +138,16 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
 
         {/* Fluffy Clouds */}
-        <div className="absolute top-10 left-12 opacity-85">
+        <div className="absolute top-8 left-12 opacity-85">
           <Cloud className={`size-24 ${isDayTime ? 'text-white/95' : 'text-slate-400/40'} drop-shadow-md`} />
         </div>
-        <div className="absolute top-20 right-64 opacity-75">
+        <div className="absolute top-16 right-64 opacity-75">
           <Cloud className={`size-20 ${isDayTime ? 'text-white/90' : 'text-slate-500/30'} drop-shadow-sm`} />
         </div>
 
-        {/* 🕊️ ANIMATED WHITE DOVES / PIGEONS FLYING IN FORMATION (From Kisan vidoe.mp4) */}
-        <div className="absolute top-8 left-0 w-full z-15">
+        {/* 🕊️ ANIMATED WHITE DOVES / PIGEONS FLYING IN FORMATION */}
+        <div className="absolute top-6 left-0 w-full z-15">
           <svg className="h-24 w-full" viewBox="0 0 1200 120" fill="none">
-            {/* Dove Group 1 */}
             <g className="animate-bird-fly-1">
               <path
                 d="M 0 35 Q 15 15 30 35 Q 45 15 60 35 Q 45 38 30 35 Q 15 38 0 35 Z"
@@ -163,7 +162,6 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
                 strokeWidth="1.5"
               />
             </g>
-            {/* Dove Group 2 */}
             <g className="animate-bird-fly-2">
               <path
                 d="M 0 65 Q 12 48 25 65 Q 38 48 50 65 Q 38 68 25 65 Q 12 68 0 65 Z"
@@ -178,7 +176,6 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
                 strokeWidth="1.5"
               />
             </g>
-            {/* Dove Group 3 */}
             <g className="animate-bird-fly-3">
               <path
                 d="M 0 45 Q 18 22 35 45 Q 52 22 70 45 Q 52 48 35 45 Q 18 48 0 45 Z"
@@ -189,90 +186,25 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             </g>
           </svg>
         </div>
+      </div>
 
-        {/* 🌾 SEAMLESS BLENDED COUNTRYSIDE FIELD & CUTOUTS (NO BORDER LINE) */}
-        <div className="absolute right-0 bottom-0 left-0 h-[480px] overflow-hidden">
-          
-          {/* Soft Horizon Gradient Feather Mask (Eliminates the horizontal seam border line!) */}
-          <div className="absolute top-0 left-0 h-32 w-full bg-gradient-to-b from-transparent via-emerald-400/20 to-emerald-600/50 backdrop-blur-[2px] z-1" />
-
-          {/* Rolling Hills Background Waves */}
-          <svg
-            className="absolute bottom-0 w-full text-emerald-500/40"
-            viewBox="0 0 1440 280"
-            fill="currentColor"
-          >
-            <path d="M0,160L120,144C240,128,480,96,720,112C960,128,1200,192,1320,224L1440,256L1440,320L1320,320C1200,320,960,320,720,320C480,320,240,320,120,320L0,320Z" />
-          </svg>
-
-          {/* Golden Wheat Crop Lines */}
-          <svg
-            className="absolute -bottom-4 w-full text-amber-500/35"
-            viewBox="0 0 1440 200"
-            fill="currentColor"
-          >
-            <path d="M0,96L80,106.7C160,117,320,139,480,133.3C640,128,800,96,960,90.7C1120,85,1280,107,1360,117.3L1440,128L1440,240L1360,240C1280,240,1120,240,960,240C480,240,240,240,80,240L0,240Z" />
-          </svg>
-
-          {/* Foreground Lush Green Crop Field */}
-          <svg
-            className="absolute -bottom-2 w-full text-emerald-700/80"
-            viewBox="0 0 1440 140"
-            fill="currentColor"
-          >
-            <path d="M0,40L120,53.3C240,67,480,93,720,85.3C960,78,1200,37,1320,16L1440,0L1440,140L1320,140C1200,140,960,140,720,140C480,140,240,140,120,140L0,140Z" />
-          </svg>
-
-          {/* 👨‍👩‍👦 FARMER FAMILY TRANSPARENT CUTOUT (Left Side Background - From Your Video) */}
-          <div className="absolute bottom-16 left-4 z-5 hidden md:block lg:left-12">
-            <div className="relative h-64 w-80 drop-shadow-2xl">
-              <Image
-                src="/farmer_family.png"
-                alt="Farmer Family with Phone"
-                fill
-                className="object-contain object-bottom"
-                priority
-              />
-            </div>
-          </div>
-
-          {/* 🚜 GREEN JOHN DEERE TRACTOR TRANSPARENT CUTOUT (Right Side Background - From Your Video) */}
-          <div className="absolute bottom-16 right-4 z-5 hidden md:block lg:right-16">
-            <div className="relative h-64 w-80 drop-shadow-2xl">
-              <Image
-                src="/green_tractor.png"
-                alt="Green John Deere Tractor"
-                fill
-                className="object-contain object-bottom"
-                priority
-              />
-            </div>
-          </div>
-
-          {/* 🌊 ANIMATED TUBEWELL WATER PUMP ENGINE (Center Bottom Field) */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-end gap-2 opacity-95 z-5">
-            <div className="flex items-end gap-2 rounded-2xl border-2 border-cyan-400 bg-white/95 p-2.5 shadow-xl backdrop-blur-md">
-              {/* Engine Box */}
-              <div className="flex flex-col items-center">
-                <div className="h-8 w-6 rounded-t-md bg-slate-900 shadow-md" />
-                <div className="h-5 w-10 rounded-b-md bg-red-600 flex items-center justify-center text-[8px] font-black text-white">ENGINE</div>
-              </div>
-              {/* Gushing Water Pipeline Stream */}
-              <div className="relative h-10 w-28">
-                <div className="absolute top-1 left-0 h-8 w-24 rounded-br-full bg-cyan-400 animate-pulse shadow-[0_0_25px_rgba(34,211,238,0.9)]" />
-                <div className="absolute top-2 left-2 h-5 w-20 rounded-br-full bg-sky-100 animate-ping opacity-90" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[11px] font-black text-cyan-950">🌊 Tubewell Water Stream</span>
-                <span className="text-[9px] font-extrabold text-emerald-800">Crops Irrigation</span>
-              </div>
-            </div>
-          </div>
+      {/* 🌾 EXACT FARM FIELD BACKGROUND IMAGE (SEAMLESSLY BLENDED INTO SKY) */}
+      <div className="pointer-events-none absolute inset-0 z-5 flex items-end">
+        <div className="relative h-[72%] w-full">
+          <Image
+            src="/kisan_farm_bg.png"
+            alt="Kisan Farm Field & Tractor Background"
+            fill
+            className="object-cover object-bottom"
+            priority
+          />
+          {/* Top Edge Feather Mask (Removes white seam line completely!) */}
+          <div className="absolute top-0 left-0 h-16 w-full bg-gradient-to-b from-sky-300/90 via-sky-200/50 to-transparent" />
         </div>
       </div>
 
       {/* 🔝 TOP HEADER BAR */}
-      <header className="relative z-20 flex flex-wrap items-center justify-between gap-4 border-b-2 border-emerald-300 bg-white/95 px-4 py-3 shadow-md backdrop-blur-md md:px-8">
+      <header className="relative z-20 flex flex-wrap items-center justify-between gap-4 border-b border-sky-300/60 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-md md:px-8">
         {/* Left Branding with Official Kisan Diwas Logo */}
         <div className="flex items-center gap-3">
           <div className="relative size-14 overflow-hidden rounded-full border-2 border-amber-500 shadow-md">
@@ -300,7 +232,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
 
         {/* Right Live Real-Time Date & Clock Widget */}
-        <div className="flex items-center gap-3 rounded-2xl border-2 border-emerald-400 bg-emerald-50 px-4 py-2 shadow-sm">
+        <div className="flex items-center gap-3 rounded-2xl border-2 border-emerald-400 bg-white/95 px-4 py-1.5 shadow-sm">
           <div className="flex items-center gap-1.5 text-xs font-black text-emerald-950 md:text-sm">
             <Calendar className="size-4 text-emerald-700" />
             <span>
@@ -354,7 +286,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
       <main className="relative z-20 mx-auto flex max-w-4xl flex-col items-center justify-center px-4 pt-2 pb-44 text-center">
         
         {/* State Badge Banner */}
-        <div className="mb-2 inline-flex items-center gap-2.5 rounded-full border-2 border-emerald-400 bg-white/95 px-5 py-2 shadow-md backdrop-blur-md">
+        <div className="mb-2 inline-flex items-center gap-2.5 rounded-full border-2 border-emerald-400 bg-white/95 px-5 py-1.5 shadow-md backdrop-blur-md">
           <span
             className={`size-3.5 rounded-full ${
               currentStateName === 'Speaking'
@@ -375,7 +307,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         </div>
 
         {/* Central Sprout Avatar Circle */}
-        <div className="relative my-2 flex size-44 items-center justify-center rounded-full border-4 border-emerald-500 bg-gradient-to-tr from-emerald-100 via-amber-50 to-amber-100 shadow-2xl md:size-52">
+        <div className="relative my-2 flex size-44 items-center justify-center rounded-full border-4 border-emerald-500 bg-gradient-to-tr from-emerald-100 via-amber-50 to-amber-100 shadow-2xl md:size-48">
           {currentStateName === 'Speaking' && (
             <div className="absolute inset-0 size-full rounded-full border-4 border-emerald-500 animate-ping opacity-60" />
           )}
@@ -384,8 +316,8 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
           )}
 
           <div className="flex flex-col items-center justify-center text-center">
-            <span className="text-6xl md:text-7xl animate-bounce">🌱</span>
-            <span className="mt-2 text-base font-black text-emerald-950">
+            <span className="text-5xl md:text-6xl animate-bounce">🌱</span>
+            <span className="mt-2 text-sm font-black text-emerald-950">
               Kisan Vaani AI
             </span>
           </div>
@@ -394,7 +326,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         {/* 🌾 TOPIC SUGGESTION PILLS (When Ready) */}
         {!isConnected && (
           <div className="my-2 flex flex-wrap items-center justify-center gap-2 max-w-xl">
-            <span className="w-full text-xs font-black text-emerald-900 uppercase tracking-widest mb-0.5">
+            <span className="w-full text-xs font-black text-emerald-950 uppercase tracking-widest mb-0.5 shadow-xs bg-white/80 rounded-full py-0.5 px-3 w-max">
               Ask Kisan Vaani About:
             </span>
             <span className="rounded-full bg-white/95 border-2 border-emerald-300 px-3.5 py-1 text-xs font-extrabold text-emerald-950 shadow-sm hover:bg-emerald-100 transition-colors">
@@ -418,7 +350,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             <button
               onClick={handleStartCall}
               disabled={session.isConnecting}
-              className="group relative flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 px-10 py-4 text-lg font-black text-white shadow-xl transition-all hover:scale-105 hover:from-emerald-700 hover:to-green-800 active:scale-95 disabled:opacity-50"
+              className="group relative flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 px-10 py-3.5 text-lg font-black text-white shadow-xl transition-all hover:scale-105 hover:from-emerald-700 hover:to-green-800 active:scale-95 disabled:opacity-50"
             >
               <Phone className="size-6 animate-bounce" />
               <span>{callEndedState ? '🔄 Start New Call' : '🌾 Baat Karo / Start Call'}</span>
@@ -426,24 +358,24 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
           ) : (
             <button
               onClick={handleEndCall}
-              className="flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-red-600 to-rose-600 px-10 py-4 text-lg font-black text-white shadow-xl transition-all hover:scale-105 hover:from-red-700 hover:to-rose-700 active:scale-95"
+              className="flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-red-600 to-rose-600 px-10 py-3.5 text-lg font-black text-white shadow-xl transition-all hover:scale-105 hover:from-red-700 hover:to-rose-700 active:scale-95"
             >
               <PhoneOff className="size-6" />
               <span>End Call (फोन काटें)</span>
             </button>
           )}
 
-          <p className="text-xs font-extrabold text-emerald-950">
+          <p className="text-xs font-extrabold text-emerald-950 bg-white/80 px-3 py-0.5 rounded-full shadow-xs">
             Supports Hindi • Hinglish • English • Tamil
           </p>
         </div>
       </main>
 
-      {/* 🇮🇳 TRANSPARENT LEADER CUTOUTS ON LEFT & RIGHT WITH TITLE BADGES (From Your Video) */}
+      {/* 🇮🇳 EXACT TRANSPARENT LEADER CUTOUTS & BADGES (FROM YOUR VIDEO) */}
       
-      {/* Bottom Left: Shri Shivraj Singh Chouhan */}
+      {/* Bottom Left: Shri Shivraj Singh Chouhan Cutout & Badge */}
       <div className="fixed bottom-0 left-0 z-30 flex flex-col items-start pointer-events-none">
-        <div className="relative h-80 w-64 md:h-[400px] md:w-72 drop-shadow-2xl">
+        <div className="relative h-72 w-60 md:h-[380px] md:w-72 drop-shadow-2xl">
           <Image
             src="/chouhan_transparent.png"
             alt="Shri Shivraj Singh Chouhan"
@@ -452,19 +384,19 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto ml-4 mb-3 rounded-xl border-2 border-emerald-400 bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md max-w-[200px] md:max-w-[240px]">
-          <h4 className="text-xs font-black text-emerald-950">
-            Shri Shivraj Singh Chouhan
-          </h4>
-          <p className="text-[10px] font-extrabold leading-tight text-emerald-700">
-            Ministry of Agriculture
-          </p>
+        <div className="pointer-events-auto ml-2 mb-2 relative h-11 w-64 md:h-12 md:w-72">
+          <Image
+            src="/chouhan_badge.png"
+            alt="Shri Shivraj Singh Chouhan Badge"
+            fill
+            className="object-contain object-left"
+          />
         </div>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji */}
+      {/* Bottom Right: Shri Narendra Modi Ji Cutout & Badge */}
       <div className="fixed bottom-0 right-0 z-30 flex flex-col items-end pointer-events-none">
-        <div className="relative h-80 w-72 md:h-[400px] md:w-[360px] drop-shadow-2xl">
+        <div className="relative h-72 w-64 md:h-[380px] md:w-80 drop-shadow-2xl">
           <Image
             src="/modi_transparent.png"
             alt="Shri Narendra Modi Ji"
@@ -473,13 +405,13 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto mr-4 mb-3 rounded-xl border-2 border-amber-400 bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md max-w-[200px] md:max-w-[240px]">
-          <h4 className="text-xs font-black text-amber-950 text-right">
-            Shri Narendra Modi Ji
-          </h4>
-          <p className="text-[10px] font-extrabold leading-tight text-amber-800 text-right">
-            Hon&apos;ble Prime Minister of India
-          </p>
+        <div className="pointer-events-auto mr-2 mb-2 relative h-11 w-64 md:h-12 md:w-72">
+          <Image
+            src="/modi_badge.png"
+            alt="Shri Narendra Modi Ji Badge"
+            fill
+            className="object-contain object-right"
+          />
         </div>
       </div>
 
