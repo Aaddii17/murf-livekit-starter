@@ -66,9 +66,15 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
     }
   };
 
-  const handleEndCall = () => {
-    disconnect();
-    setCallEndedState(true);
+  const handleEndCall = async () => {
+    try {
+      setCallEndedState(true);
+      if (session && session.disconnect) {
+        await session.disconnect();
+      }
+    } catch (err) {
+      console.error('Disconnect error:', err);
+    }
   };
 
   // Determine current Agent State (1: Ready, 2: Connecting, 3: Listening, 4: Speaking, 5: Call Ended)
