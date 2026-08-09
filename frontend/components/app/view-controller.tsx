@@ -14,22 +14,23 @@ export function ViewController({ appConfig }: ViewControllerProps) {
 
   return (
     <div className="relative min-h-screen w-full">
-      {/* Primary Light-Theme Agricultural Dashboard & Landing */}
+      {/* Primary Cover Dashboard & Landing */}
       <KisanLightDashboard onStartCall={start} />
 
-      {/* Active Session View Overlay (Text Chat, Live Transcript, Audio Waveform & Controls) when connected */}
+      {/* Active Day 1 Floating Session Control Bar (Chat Text Input, Live Transcripts & Controls) */}
       {isConnected && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-between bg-slate-950/80 p-4 backdrop-blur-md md:p-8">
-          <AgentSessionView_01
-            supportsChatInput={appConfig.supportsChatInput}
-            supportsVideoInput={appConfig.supportsVideoInput}
-            supportsScreenShare={appConfig.supportsScreenShare}
-            isPreConnectBufferEnabled={appConfig.isPreConnectBufferEnabled}
-            audioVisualizerType="bar"
-            audioVisualizerColor="#10b981"
-            audioVisualizerBarCount={7}
-            className="h-full w-full max-w-5xl mx-auto"
-          />
+        <div className="fixed inset-x-0 bottom-16 z-50 flex justify-center pointer-events-none px-4">
+          <div className="pointer-events-auto w-full max-w-2xl rounded-3xl border-2 border-emerald-400/60 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-md">
+            <AgentSessionView_01
+              supportsChatInput={appConfig.supportsChatInput}
+              supportsVideoInput={appConfig.supportsVideoInput}
+              supportsScreenShare={appConfig.supportsScreenShare}
+              isPreConnectBufferEnabled={appConfig.isPreConnectBufferEnabled}
+              audioVisualizerType="bar"
+              audioVisualizerColor="#10b981"
+              audioVisualizerBarCount={7}
+            />
+          </div>
         </div>
       )}
     </div>

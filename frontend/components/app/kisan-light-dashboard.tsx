@@ -280,9 +280,9 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
 
       {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS WITH ROUNDED BADGES */}
       
-      {/* Bottom Left: Shri Shivraj Singh Chouhan */}
+      {/* Bottom Left: Shri Shivraj Singh Chouhan (MUCH LARGER CUTOUT) */}
       <div className="fixed bottom-0 left-0 z-40 flex flex-col items-start pointer-events-none">
-        <div className="relative h-72 w-56 sm:h-96 sm:w-72 md:h-[460px] md:w-[380px] drop-shadow-2xl">
+        <div className="relative h-80 w-64 sm:h-[460px] sm:w-[380px] lg:h-[580px] lg:w-[460px] drop-shadow-2xl">
           <Image
             src="/chouhan_transparent.png"
             alt="Shri Shivraj Singh Chouhan"
@@ -291,19 +291,19 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto ml-3 mb-3 rounded-full border border-emerald-400/50 bg-slate-950/90 px-4 py-2 text-white shadow-2xl backdrop-blur-md">
-          <h4 className="text-xs font-black text-amber-300">
+        <div className="pointer-events-auto ml-4 mb-4 rounded-full border-2 border-emerald-400/60 bg-slate-950/95 px-5 py-2.5 text-white shadow-2xl backdrop-blur-md">
+          <h4 className="text-sm font-black text-amber-300">
             Shri Shivraj Singh Chouhan
           </h4>
-          <p className="text-[10px] font-bold text-slate-300">
+          <p className="text-xs font-bold text-emerald-300">
             Ministry of Agriculture
           </p>
         </div>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji */}
+      {/* Bottom Right: Shri Narendra Modi Ji (MUCH LARGER CUTOUT) */}
       <div className="fixed bottom-0 right-0 z-40 flex flex-col items-end pointer-events-none">
-        <div className="relative h-72 w-64 sm:h-96 sm:w-80 md:h-[460px] md:w-[420px] drop-shadow-2xl">
+        <div className="relative h-80 w-72 sm:h-[460px] sm:w-[400px] lg:h-[580px] lg:w-[500px] drop-shadow-2xl">
           <Image
             src="/modi_transparent.png"
             alt="Shri Narendra Modi Ji"
@@ -312,11 +312,11 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto mr-3 mb-3 rounded-full border border-amber-400/50 bg-slate-950/90 px-4 py-2 text-white shadow-2xl backdrop-blur-md text-right">
-          <h4 className="text-xs font-black text-amber-300">
+        <div className="pointer-events-auto mr-4 mb-4 rounded-full border-2 border-amber-400/60 bg-slate-950/95 px-5 py-2.5 text-white shadow-2xl backdrop-blur-md text-right">
+          <h4 className="text-sm font-black text-amber-300">
             Shri Narendra Modi Ji
           </h4>
-          <p className="text-[10px] font-bold text-slate-300">
+          <p className="text-xs font-bold text-amber-200">
             Hon&apos;ble Prime Minister of India
           </p>
         </div>
