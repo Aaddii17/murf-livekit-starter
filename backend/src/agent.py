@@ -1,151 +1,218 @@
 import logging
-import io
-import sys
 import os
+import sys
+import io
+import sqlite3
+import json
 from datetime import datetime
-from dotenv import load_dotenv
-from livekit.agents import (
-    AgentSession,
-    Agent,
-    JobContext,
-    WorkerOptions,
-    AutoSubscribe,
-    cli,
-    llm,
-    tokenize,
-)
-from livekit.plugins import deepgram, google, murf, silero
-from livekit.plugins.turn_detector import MultilingualModel
 
-import db
-
-# Force UTF-8 encoding for stdout/stderr to prevent Windows console cp1252 Devanagari crash
-if sys.stdout and hasattr(sys.stdout, "buffer"):
+if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-if sys.stderr and hasattr(sys.stderr, "buffer"):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-load_dotenv(dotenv_path=".env.local")
-logger = logging.getLogger("kisan-vaani")
-logger.setLevel(logging.INFO)
-
-# Initialize SQLite database schema
-db.init_db()
-
-# Define LiveKit LLM Tools for Kisan Vaani SQLite Memory Persistence (Day 4 Requirement)
-@llm.ai_callable(description="Look up stored farmer profile and facts from SQLite memory database.")
-def lookup_farmer_profile(user_id: str = "default_farmer") -> str:
-    profile = db.get_farmer(user_id)
-    if profile and profile.get("name"):
-        return (
-            f"FOUND FARMER RECORD in SQLite:\n"
-            f"Name: {profile.get('name')}\n"
-            f"District: {profile.get('district')}\n"
-            f"Crops: {profile.get('crops_grown')}\n"
-            f"Land Size: {profile.get('land_size')}\n"
-            f"Irrigation: {profile.get('irrigation_type')}\n"
-            f"Last Topic: {profile.get('last_topic')}\n"
-            f"Last Interaction: {profile.get('last_interaction')}"
-        )
-    return "NO PRIOR RECORD FOUND in SQLite memory. This is a new caller."
-
-@llm.ai_callable(
-    description="Save or update farmer details into SQLite database. ALWAYS ASK EXPLICIT CONSENT BEFORE CALLING THIS FUNCTION!"
+from dotenv import load_dotenv
+from livekit import rtc
+from livekit.agents import (
+    Agent,
+    AgentServer,
+    AgentSession,
+    JobContext,
+    JobProcess,
+    cli,
+    tokenize,
+    room_io,
+    llm,
 )
-def save_farmer_profile(
-    name: str,
-    district: str = "",
-    crops_grown: str = "",
-    land_size: str = "",
-    irrigation_type: str = "",
-    last_topic: str = "",
-    user_id: str = "default_farmer"
-) -> str:
-    db.save_farmer(
-        user_id=user_id,
-        name=name,
-        district=district,
-        crops_grown=crops_grown,
-        land_size=land_size,
-        irrigation_type=irrigation_type,
-        last_topic=last_topic,
-        consent_given=1
+from livekit.plugins import murf, silero, deepgram, groq, noise_cancellation
+from livekit.plugins.turn_detector.multilingual import MultilingualModel
+
+logger = logging.getLogger("agent")
+
+load_dotenv(".env.local")
+
+# Day 4: SQLite Database for Persistent Farmer Memory
+DB_PATH = os.path.join(os.path.dirname(__file__), "kisan_memory.db")
+
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS farmers (
+            user_id TEXT PRIMARY KEY,
+            name TEXT,
+            district TEXT,
+            crops_grown TEXT,
+            land_size TEXT,
+            irrigation_type TEXT,
+            last_topic TEXT,
+            consent_given INTEGER DEFAULT 0,
+            last_interaction TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+# Day 4: LLM Function Tools for Memory Lookup & Saving
+class KisanMemoryTools(llm.FunctionContext):
+    def __init__(self):
+        super().__init__()
+
+    @llm.ai_callable(
+        description="Look up a farmer's saved profile facts by name or ID from SQLite memory."
     )
-    return f"SUCCESS: Saved farmer profile for {name} to SQLite memory database."
+    def lookup_farmer_profile(self, name_or_id: str) -> str:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        search = f"%{name_or_id.strip()}%"
+        cursor.execute(
+            "SELECT user_id, name, district, crops_grown, land_size, irrigation_type, last_topic, consent_given FROM farmers WHERE LOWER(name) LIKE LOWER(?) OR user_id = ?",
+            (search, name_or_id.strip().lower().replace(" ", "_")),
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            profile = {
+                "found": True,
+                "user_id": row[0],
+                "name": row[1],
+                "district": row[2],
+                "crops_grown": row[3],
+                "land_size": row[4],
+                "irrigation_type": row[5],
+                "last_topic": row[6],
+                "consent_given": bool(row[7]),
+            }
+            logger.info(f"Loaded memory for farmer: {profile}")
+            return json.dumps(profile, ensure_ascii=False)
+        return json.dumps({"found": False, "message": "No caller profile found."})
 
-@llm.ai_callable(description="Forget caller data and wipe farmer record from SQLite database if requested by farmer.")
-def forget_farmer_profile(user_id: str = "default_farmer") -> str:
-    db.delete_farmer(user_id)
-    return "SUCCESS: Caller profile completely erased from SQLite memory database."
+    @llm.ai_callable(
+        description="Save or update a farmer's profile facts in SQLite memory ONLY AFTER asking and receiving explicit caller consent."
+    )
+    def save_farmer_profile(
+        self,
+        name: str,
+        district: str = "",
+        crops_grown: str = "",
+        land_size: str = "",
+        irrigation_type: str = "",
+        last_topic: str = "",
+    ) -> str:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        user_id = name.strip().lower().replace(" ", "_")
+        cursor.execute(
+            """
+            INSERT INTO farmers (user_id, name, district, crops_grown, land_size, irrigation_type, last_topic, consent_given, last_interaction)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                district=CASE WHEN EXCLUDED.district != '' THEN EXCLUDED.district ELSE district END,
+                crops_grown=CASE WHEN EXCLUDED.crops_grown != '' THEN EXCLUDED.crops_grown ELSE crops_grown END,
+                land_size=CASE WHEN EXCLUDED.land_size != '' THEN EXCLUDED.land_size ELSE land_size END,
+                irrigation_type=CASE WHEN EXCLUDED.irrigation_type != '' THEN EXCLUDED.irrigation_type ELSE irrigation_type END,
+                last_topic=CASE WHEN EXCLUDED.last_topic != '' THEN EXCLUDED.last_topic ELSE last_topic END,
+                consent_given=1,
+                last_interaction=CURRENT_TIMESTAMP
+        """,
+            (user_id, name, district, crops_grown, land_size, irrigation_type, last_topic),
+        )
+        conn.commit()
+        conn.close()
+        logger.info(f"Saved memory for farmer: {name}")
+        return json.dumps({"status": "success", "message": f"Saved profile for {name}"})
+
+    @llm.ai_callable(
+        description="Wipe/forget a farmer's saved profile from SQLite memory when requested by the caller."
+    )
+    def forget_farmer_profile(self, name_or_id: str) -> str:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        user_id = name_or_id.strip().lower().replace(" ", "_")
+        cursor.execute(
+            "DELETE FROM farmers WHERE user_id = ? OR LOWER(name) = LOWER(?)",
+            (user_id, name_or_id.strip()),
+        )
+        conn.commit()
+        conn.close()
+        logger.info(f"Wiped memory for farmer: {name_or_id}")
+        return json.dumps({"status": "deleted", "message": f"Wiped all records for {name_or_id}"})
 
 
-def get_kisan_system_prompt(existing_profile: dict = None) -> str:
-    now_str = datetime.now().strftime("%A, %d %B %Y, %I:%M %p")
-    
-    profile_context = ""
-    if existing_profile and existing_profile.get("name"):
-        profile_context = (
-            f"\n\nRETURNING CALLER MEMORY DETECTED (SQLite DB):\n"
-            f"- Farmer Name: {existing_profile.get('name')}\n"
-            f"- District: {existing_profile.get('district', 'N/A')}\n"
-            f"- Crops Grown: {existing_profile.get('crops_grown', 'N/A')}\n"
-            f"- Land Size: {existing_profile.get('land_size', 'N/A')}\n"
-            f"- Irrigation Type: {existing_profile.get('irrigation_type', 'N/A')}\n"
-            f"- Last Spoken Topic: {existing_profile.get('last_topic', 'N/A')}\n"
-            f"INSTRUCTION FOR RETURNING CALLER: Greet them warmly by name in Hindi (e.g. 'नमस्ते {existing_profile.get('name')} जी!'), welcome them back, and mention their crops/last topic!"
+def get_kisan_system_prompt() -> str:
+    now = datetime.now()
+    current_time_str = now.strftime("%A, %d %B %Y, %I:%M %p")
+    return f"""[IDENTITY]
+You are 'Kisan Vaani', a warm, practical, and trusted Indian AI agricultural assistant built for farmers under the Voice for Bharat initiative.
+
+[CURRENT DATE & TIME CONTEXT]
+Today's local date and time in India is: {current_time_str}.
+
+[DAY 4 PERSISTENT MEMORY & CONSENT RULES]
+1. LOOKUP CALLER: When a caller introduces themselves or shares their name (e.g., "मेरा नाम रमेश है"), call `lookup_farmer_profile(name_or_id)` immediately.
+2. RETURNING CALLER GREETING: If `lookup_farmer_profile` returns a saved profile, greet them warmly by name, mention their saved crops/land size/location from last time, and ask how you can help today! Example: "नमस्ते रमेश जी! किसान वाणी में स्वागत है। पिछली बार हमने आपके 5 एकड़ खेत और ट्यूबवेल सिंचाई के बारे में बात की थी। आज क्या सहायता चाहिए?"
+3. CONSENT BEFORE SAVING: BEFORE saving any new facts (name, crops, land size, district, irrigation), YOU MUST EXPLICITLY ASK PERMISSION: "क्या मैं आपकी यह जानकारी भविष्य के लिए याद रख सकता हूँ?"
+   - If caller says YES ➔ Call `save_farmer_profile(...)`.
+   - If caller says NO ➔ DO NOT call `save_farmer_profile`. Politely respect their decision.
+4. FORGET ME TOOL: If caller asks to delete or forget their memory ("मेरी जानकारी मिटा दो"), call `forget_farmer_profile(...)` and confirm deletion.
+
+[OBJECTIVES]
+1. Help farmers with practical crop guidance, soil health, and weather advisories.
+2. Provide estimated mandi market prices clearly indicating they are current estimates as of today.
+
+[LANGUAGE & SCRIPT - CRITICAL]
+Always write every language in its own native script.
+- Hindi → Devanagari script (e.g., "नमस्ते! मैं किसान वाणी हूँ।"), NEVER romanized (never "namaste").
+- Match the user's spoken language naturally.
+
+[GUARDRAILS & REFUSALS]
+1. MANDI PRICE GUARDRAIL: Never state a market price as a guaranteed fact without adding "e-NAM के अनुसार आज का अनुमानित भाव है".
+2. PESTICIDE / CHEMICAL GUARDRAIL: Never prescribe dangerous chemical dosages. Always advise consulting a local Krishi Vigyan Kendra (KVK) officer.
+3. OUT OF SCOPE & ESCALATION: Refuse stock market tips, medical advice, banking OTPs/loans, or non-farming topics. Say: "मैं खेती-बाड़ी सहायक हूँ और इस विषय पर सलाह नहीं दे सकता। कृपया किसान कॉल सेंटर टोल-फ्री 1800-180-1551 पर संपर्क करें।"
+
+[STYLE FOR VOICE]
+- Keep responses short, conversational, and direct (1 to 2 short sentences max, under 25 words).
+- Never use screen formatting like bullet points, brackets, emojis, or symbols."""
+
+
+class Assistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(
+            instructions=get_kisan_system_prompt(),
+            fnc_ctx=KisanMemoryTools(),
         )
 
-    return f"""You are Kisan Vaani (किसान वाणी), an expert, empathetic, and friendly AI Agricultural Voice Companion built for Indian farmers as part of the Voice for Bharat initiative.
 
-CURRENT DATE & TIME: {now_str}{profile_context}
-
-YOUR CORE DUTIES & DAY 4 MEMORY RULES:
-1. GREETING & IDENTIFICATION:
-   - For new callers (no memory): Warmly greet, introduce yourself as Kisan Vaani, and ask their name, district, and crop details.
-   - For returning callers: Welcome them back by name, mention their crop/district from memory, and ask how you can help today.
-
-2. EXPLICIT CONSENT BEFORE SAVING (DAY 4 MANDATORY RULE):
-   - BEFORE saving any farmer information, ALWAYS ask for explicit permission in Hindi!
-   - Ask: "क्या मैं आपकी यह जानकारी (नाम, फसल और क्षेत्र) भविष्य के लिए याद रख सकता हूँ?"
-   - IF the farmer says YES -> Call `save_farmer_profile` tool with their details.
-   - IF the farmer says NO -> DO NOT call `save_farmer_profile`. Respect their privacy completely!
-
-3. FORGET ME TOOL (DAY 4 ADVANCED RULE):
-   - IF the farmer asks "Meri jankari bhool jao" or "Delete my data", call `forget_farmer_profile` tool and confirm to them that their record has been wiped.
-
-4. SCOPE & DOMAIN:
-   - Provide advisory on Wheat (गेहूँ), Paddy (धान), Cotton, Mandi Rates (e-NAM), Weather, Pest Control, Fertilizers, and Government Schemes (PM-Kisan).
-   - If asked non-agricultural questions (e.g. train tickets, movies), politely decline: "मैं केवल कृषि संबंधी विषयों में आपकी सहायता कर सकता हूँ।"
-
-5. LANGUAGE & SCRIPT (MANDATORY):
-   - ALWAYS write Hindi in Devanagari script (e.g., नमस्ते, गेहूँ, मंडी), NEVER in English/Romanized Hindi (never "namaste").
-   - Speak in clear, warm, concise 1 to 2 sentences so responses remain fast and natural.
-"""
+server = AgentServer()
 
 
-async def entrypoint(ctx: JobContext):
-    logger.info(f"Connecting to room: {ctx.room.name}")
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+def prewarm(proc: JobProcess):
+    proc.userdata["vad"] = silero.VAD.load()
 
-    # Day 4: Check SQLite DB for existing farmer profile
-    farmer_profile = db.get_farmer("default_farmer")
-    if farmer_profile and farmer_profile.get("name"):
-        logger.info(f"Loaded existing farmer profile for: {farmer_profile['name']}")
-    else:
-        logger.info("No prior farmer profile found in SQLite DB.")
 
-    system_prompt = get_kisan_system_prompt(farmer_profile)
+server.setup_fnc = prewarm
 
-    # Initial Greeting
-    if farmer_profile and farmer_profile.get("name"):
-        greeting_text = f"नमस्ते {farmer_profile['name']} जी! किसान वाणी में आपका पुनः स्वागत है। पिछली बार हमने आपके {farmer_profile.get('crops_grown', 'फ़सल')} के बारे में बात की थी। आज मैं आपकी क्या सहायता कर सकता हूँ?"
-    else:
-        greeting_text = "नमस्ते! मैं किसान वाणी हूँ, आपका खेती-बाड़ी सहायक। आपका शुभ नाम क्या है और आप कौन सी फ़सल उगाते हैं?"
 
-    # Configure Day 4 Multilocale Speech Pipeline Agent Session
+@server.rtc_session()
+async def my_agent(ctx: JobContext):
+    ctx.log_context_fields = {
+        "room": ctx.room.name,
+    }
+
+    # Ultra-fast Groq LLM plugin
+    llm_provider = groq.LLM(
+        model="llama-3.1-8b-instant",
+        api_key=os.getenv("GROQ_API_KEY"),
+    )
+
+    # Official Murf AI Multilingual Session
     session = AgentSession(
         stt=deepgram.STT(model="nova-3", language="multi"),
-        llm=google.LLM(model="gemini-2.5-flash"),
+        llm=llm_provider,
         tts=murf.TTS(
             voice="Anisha",
             style="Conversation",
@@ -153,19 +220,33 @@ async def entrypoint(ctx: JobContext):
             text_pacing=True,
         ),
         turn_detection=MultilingualModel(),
-        vad=silero.VAD.load(),
-        tools=[lookup_farmer_profile, save_farmer_profile, forget_farmer_profile],
+        vad=ctx.proc.userdata["vad"],
         preemptive_generation=True,
     )
 
     await session.start(
+        agent=Assistant(),
         room=ctx.room,
-        agent=Agent(
-            instructions=system_prompt,
-            greeting=greeting_text,
+        room_options=room_io.RoomOptions(
+            audio_input=room_io.AudioInputOptions(
+                noise_cancellation=lambda params: (
+                    noise_cancellation.BVCTelephony()
+                    if params.participant.kind
+                    == rtc.ParticipantKind.PARTICIPANT_KIND_SIP
+                    else noise_cancellation.BVC()
+                ),
+            ),
         ),
+    )
+
+    await ctx.connect()
+
+    # Initial Devanagari greeting
+    await session.say(
+        "नमस्ते! मैं किसान वाणी हूँ, आपका खेती बाड़ी सहायक। आपका नाम क्या है और आप कौनसी फसल उगाते हैं?",
+        allow_interruptions=True,
     )
 
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    cli.run_app(server)
