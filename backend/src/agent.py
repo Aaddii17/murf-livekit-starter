@@ -21,6 +21,7 @@ from livekit.agents import (
     tokenize,
     room_io,
     llm,
+    function_tool,
 )
 from livekit.plugins import murf, silero, deepgram, groq, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
@@ -121,40 +122,6 @@ def db_forget_farmer(name_or_id: str) -> bool:
 
 
 # =====================================================================
-# STEP 3: FUNCTION CALLING TOOLS FOR KISAN VAANI MEMORY
-# =====================================================================
-class KisanMemoryTools(llm.FunctionContext):
-    @llm.ai_callable(description="Look up existing farmer profile from database by name or ID")
-    def lookup_farmer(self, farmer_name: str) -> str:
-        record = db_lookup_farmer(farmer_name)
-        if record:
-            return f"FOUND RECORD: Name={record['name']}, District={record['district']}, Crops={record['crops_grown']}, LandSize={record['land_size']}, Irrigation={record['irrigation_type']}, LastTopic={record['last_topic']}, LastInteraction={record['last_interaction']}"
-        return f"NO RECORD FOUND for farmer name: {farmer_name}. This is a new caller."
-
-    @llm.ai_callable(description="Save farmer profile facts to database ONLY AFTER farmer gives explicit consent")
-    def save_farmer_profile(
-        self,
-        name: str,
-        district: str = "Unknown",
-        crops_grown: str = "Unknown",
-        land_size: str = "Unknown",
-        irrigation_type: str = "Unknown",
-        last_topic: str = "General farming guidance",
-    ) -> str:
-        success = db_save_farmer(name, district, crops_grown, land_size, irrigation_type, last_topic)
-        if success:
-            return f"Successfully saved memory for {name} ({district}, Crops: {crops_grown}, Land: {land_size}, Irrigation: {irrigation_type})."
-        return "Failed to save profile."
-
-    @llm.ai_callable(description="Wipe farmer profile from database if caller asks to be forgotten ('forget me' or 'मेरी जानकारी हटा दो')")
-    def forget_farmer(self, farmer_name: str) -> str:
-        wiped = db_forget_farmer(farmer_name)
-        if wiped:
-            return f"Memory for {farmer_name} has been completely wiped from database."
-        return f"No memory record found for {farmer_name} to delete."
-
-
-# =====================================================================
 # SYSTEM PROMPT WITH DAY 4 MEMORY & CONSENT RULES
 # =====================================================================
 def get_kisan_system_prompt() -> str:
@@ -167,13 +134,13 @@ You are 'Kisan Vaani', a warm, practical, and trusted Indian AI agricultural ass
 Today's local date and time in India is: {current_time_str}.
 
 [DAY 4 MEMORY & CONSENT RULES]
-1. LOOKUP CALLER: When a caller tells you their name (e.g. Ramesh), call 'lookup_farmer(farmer_name)' to check if you remember them.
+1. LOOKUP CALLER: When a caller tells you their name (e.g. Ramesh), call 'lookup_farmer' to check if you remember them.
 2. RETURNING CALLER GREETING: If 'lookup_farmer' finds a record (e.g., Ramesh from Noida growing wheat on 5 acres), welcome them back warmly by name in Devanagari Hindi! Reference their saved facts (e.g. "नमस्ते रमेश जी! किसान वाणी में आपका पुनः स्वागत है। पिछली बार हमने आपके 5 एकड़ गेहूँ के खेत के बारे में बात की थी।")
 3. CONSENT BEFORE SAVING (MANDATORY RULE): When a caller shares facts (Name, District, Crops, Land Size, Irrigation), ALWAYS ASK FOR PERMISSION BEFORE SAVING!
    Example: "क्या मैं आपकी यह जानकारी (नाम, फसल और सिंचाई) भविष्य के लिए याद रख सकता हूँ?"
    - If caller says YES ➔ Call 'save_farmer_profile' function immediately!
    - If caller says NO ➔ Do NOT save any data!
-4. FORGET ME TOOL: If caller asks to be forgotten ("forget me" or "मेरी जानकारी डिलीट कर दो"), call 'forget_farmer(farmer_name)' and confirm that their memory has been deleted.
+4. FORGET ME TOOL: If caller asks to be forgotten ("forget me" or "मेरी जानकारी डिलीट कर दो"), call 'forget_farmer' and confirm that their memory has been deleted.
 
 [OBJECTIVES]
 1. Help farmers with practical crop guidance, soil health, and weather advisories.
@@ -192,11 +159,45 @@ Today's local date and time in India is: {current_time_str}.
 - Never use screen formatting like bullet points, brackets, emojis, or symbols."""
 
 
+# =====================================================================
+# STEP 3: FUNCTION CALLING TOOLS FOR KISAN VAANI MEMORY
+# =====================================================================
+@function_tool(description="Look up existing farmer profile from database by name or ID")
+def lookup_farmer(farmer_name: str) -> str:
+    record = db_lookup_farmer(farmer_name)
+    if record:
+        return f"FOUND RECORD: Name={record['name']}, District={record['district']}, Crops={record['crops_grown']}, LandSize={record['land_size']}, Irrigation={record['irrigation_type']}, LastTopic={record['last_topic']}, LastInteraction={record['last_interaction']}"
+    return f"NO RECORD FOUND for farmer name: {farmer_name}. This is a new caller."
+
+
+@function_tool(description="Save farmer profile facts to database ONLY AFTER farmer gives explicit consent")
+def save_farmer_profile(
+    name: str,
+    district: str = "Unknown",
+    crops_grown: str = "Unknown",
+    land_size: str = "Unknown",
+    irrigation_type: str = "Unknown",
+    last_topic: str = "General farming guidance",
+) -> str:
+    success = db_save_farmer(name, district, crops_grown, land_size, irrigation_type, last_topic)
+    if success:
+        return f"Successfully saved memory for {name} ({district}, Crops: {crops_grown}, Land: {land_size}, Irrigation: {irrigation_type})."
+    return "Failed to save profile."
+
+
+@function_tool(description="Wipe farmer profile from database if caller asks to be forgotten ('forget me' or 'मेरी जानकारी हटा दो')")
+def forget_farmer(farmer_name: str) -> str:
+    wiped = db_forget_farmer(farmer_name)
+    if wiped:
+        return f"Memory for {farmer_name} has been completely wiped from database."
+    return f"No memory record found for {farmer_name} to delete."
+
+
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions=get_kisan_system_prompt(),
-            tools=KisanMemoryTools(),
+            tools=[lookup_farmer, save_farmer_profile, forget_farmer],
         )
 
 
