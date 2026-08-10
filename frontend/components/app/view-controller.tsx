@@ -66,7 +66,7 @@ function LiveTranscriptPanel() {
 }
 
 export function ViewController({ appConfig }: ViewControllerProps) {
-  const { isConnected, start, session } = useSessionContext();
+  const { isConnected, start, session, disconnect } = useSessionContext();
 
   return (
     <div className="relative min-h-screen w-full">
@@ -90,8 +90,8 @@ export function ViewController({ appConfig }: ViewControllerProps) {
                 camera: appConfig.supportsVideoInput,
                 screenShare: appConfig.supportsScreenShare,
               }}
-              isConnected={session.isConnected}
-              onDisconnect={session.end}
+              isConnected={isConnected}
+              onDisconnect={disconnect || session?.end}
             />
           </div>
         </div>
