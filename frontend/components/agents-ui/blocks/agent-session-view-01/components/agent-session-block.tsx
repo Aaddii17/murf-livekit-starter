@@ -133,6 +133,11 @@ export interface AgentSessionView_01Props {
    */
   isPreConnectBufferEnabled?: boolean;
 
+  /**
+   * Initial state of chat transcript visibility.
+   * @default true
+   */
+  initialChatOpen?: boolean;
   /** Selects the visualizer style rendered in the main tile area. */
   audioVisualizerType?: 'bar' | 'wave' | 'grid' | 'radial' | 'aura';
   /** Primary hex color used by supported audio visualizer variants. */
@@ -161,6 +166,7 @@ export function AgentSessionView_01({
   supportsVideoInput = true,
   supportsScreenShare = true,
   isPreConnectBufferEnabled = true,
+  initialChatOpen = true,
 
   audioVisualizerType,
   audioVisualizerColor,
@@ -177,7 +183,7 @@ export function AgentSessionView_01({
 }: React.ComponentProps<'section'> & AgentSessionView_01Props) {
   const session = useSessionContext();
   const { messages } = useSessionMessages(session);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(initialChatOpen);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { state: agentState } = useAgent();
 
