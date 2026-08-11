@@ -68,18 +68,13 @@ function LiveTranscriptPanel() {
 export function ViewController({ appConfig }: ViewControllerProps) {
   const { isConnected, start, session, disconnect } = useSessionContext();
 
-  const handleStartInbound = () => {
-    start();
-  };
-
-  const handleStartOutbound = () => {
-    start({ call_type: 'outbound' });
-  };
-
   return (
     <div className="relative min-h-screen w-full">
       {/* Primary Cover Dashboard & Landing */}
-      <KisanLightDashboard onStartCall={handleStartInbound} onStartOutboundCall={handleStartOutbound} />
+      <KisanLightDashboard
+        onStartCall={start}
+        onStartOutboundCall={() => start({ roomName: `outbound_alert_room_${Date.now()}` })}
+      />
 
       {/* Active Day 1 Floating Session Control Bar with Live Transcript */}
       {isConnected && (
