@@ -9,13 +9,11 @@ type ConnectionDetails = {
   participantToken: string;
 };
 
-// NOTE: you are expected to define the following environment variables in `.env.local`:
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const AGENT_NAME = process.env.AGENT_NAME;
 
-// don't cache the results
 export const revalidate = 0;
 
 export async function POST(req: Request) {
@@ -30,38 +28,45 @@ export async function POST(req: Request) {
       throw new Error('LIVEKIT_API_SECRET is not defined');
     }
 
-    // Parse room config from request body (if provided).
     const body = await req.json().catch(() => ({}));
+    const isOutbound = body?.call_type === 'outbound';
+
     let roomConfig: RoomConfiguration | undefined;
     if (body?.room_config) {
       roomConfig = RoomConfiguration.fromJson(body.room_config, { ignoreUnknownFields: true });
     } else if (AGENT_NAME) {
-      // When AGENT_NAME is set, configure explicit agent dispatch so the named
-      // agent worker picks up the job when a user joins the room.
       roomConfig = RoomConfiguration.fromJson(
         { agents: [{ agentName: AGENT_NAME }] },
         { ignoreUnknownFields: true }
       );
     }
       
-    // Generate participant token
-    const participantName = 'user';
+    const participantName = isOutbound ? 'Farmer Ramesh' : 'user';
     const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
-    const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
+    const roomName = isOutbound
+      ? `outbound_room_${Math.floor(Math.random() * 10_000)}`
+      : `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
+
+    const metadata = JSON.stringify({
+      call_type: isOutbound ? 'outbound' : 'inbound',
+      user_name: 'Ramesh',
+      district: 'Noida',
+      crop: 'Wheat',
+    });
 
     const participantToken = await createParticipantToken(
-      { identity: participantIdentity, name: participantName },
+      { identity: participantIdentity, name: participantName, metadata },
       roomName,
       roomConfig
     );
 
-    // Return connection details
     const data: ConnectionDetails = {
       serverUrl: LIVEKIT_URL,
       roomName,
       participantName,
       participantToken,
     };
+
     const headers = new Headers({
       'Cache-Control': 'no-store',
     });

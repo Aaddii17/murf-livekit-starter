@@ -66,6 +66,26 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
     }
   };
 
+  // Handle Start Outbound Call Alert
+  const handleStartOutboundCall = async () => {
+    setMicError(null);
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      if (onStartOutboundCall) {
+        onStartOutboundCall();
+      } else {
+        onStartCall();
+      }
+    } catch (err: any) {
+      console.error('Microphone permission error:', err);
+      setMicError(
+        'Microphone access was denied. Please allow microphone access in your browser address bar settings.'
+      );
+    }
+  };
+
   const handleEndCall = async () => {
     try {
       setCallEndedState(true);
@@ -258,16 +278,27 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
         )}
 
         {/* 🎬 MAIN ACTION BUTTONS */}
-        <div className="mt-2 flex flex-col items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-4">
           {!isConnected ? (
-            <button
-              onClick={handleStartCall}
-              disabled={session.isConnecting}
-              className="group relative flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 px-10 py-4 text-lg font-black text-slate-950 shadow-[0_0_35px_rgba(16,185,129,0.6)] transition-all hover:scale-105 hover:from-emerald-400 hover:to-green-500 active:scale-95 disabled:opacity-50"
-            >
-              <Phone className="size-6 animate-bounce text-slate-950" />
-              <span>{callEndedState ? '🔄 Start New Call' : '🌾 Baat Karo / Start Call'}</span>
-            </button>
+            <>
+              <button
+                onClick={handleStartCall}
+                disabled={session.isConnecting}
+                className="group relative flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 px-8 py-4 text-base font-black text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all hover:scale-105 hover:from-emerald-400 hover:to-green-500 active:scale-95 disabled:opacity-50"
+              >
+                <Phone className="size-5 animate-bounce text-slate-950" />
+                <span>{callEndedState ? '🔄 Start New Inbound Call' : '🌾 Inbound Call (बात करो)'}</span>
+              </button>
+
+              <button
+                onClick={handleStartOutboundCall}
+                disabled={session.isConnecting}
+                className="group relative flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 px-8 py-4 text-base font-black text-white shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all hover:scale-105 hover:from-amber-400 hover:to-orange-500 active:scale-95 disabled:opacity-50"
+              >
+                <PhoneCall className="size-5 animate-ping text-white" />
+                <span>🚨 Make Outbound Call (फोन लगाओ)</span>
+              </button>
+            </>
           ) : (
             <button
               onClick={handleEndCall}
@@ -277,11 +308,10 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
               <span>End Call (फोन काटें)</span>
             </button>
           )}
-
-          <p className="text-xs font-bold text-slate-200 drop-shadow-md">
-            Supports Hindi • Hinglish • English • Tamil
-          </p>
         </div>
+        <p className="mt-4 text-xs font-bold text-slate-200 drop-shadow-md">
+          Supports Hindi • Hinglish • English • Tamil
+        </p>
       </main>
 
       {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS WITH ROUNDED BADGES */}
