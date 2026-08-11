@@ -8,13 +8,15 @@
 
 ---
 
-## 🌟 Day 4 & Day 5 Capabilities
+## 🌟 Day 4, Day 5 & Day 6 Capabilities
 
-- **🗄️ Day 4 Persistent SQLite Memory**: Remembers farmer profiles across calls (name, district, crops grown, land size) with explicit caller consent.
-- **🌤️ Day 5 Live Weather Tool (`get_weather_forecast`)**: Fetches **live real-time weather data** from the Open-Meteo REST API (temperature, rain probability, humidity, and advisories) for any Indian district.
+- **📞 Day 6 Proactive Outbound Call Alerts**: Initiates outbound calls to farmers with mandatory 3-part opening (Who + Why + How to Opt-out) for urgent weather warnings & mandi price spikes.
+- **🛡️ Day 6 Opt-Out Tool (`opt_out_alerts`)**: Unsubscribes callers cleanly when they request "बंद करो" or "alert stop".
+- **🌤️ Day 5 Live Weather Tool (`get_weather_forecast`)**: Fetches **live real-time weather data** from Open-Meteo REST API (temperature, rain probability, humidity, advisories) for any Indian district.
 - **🌾 Day 5 Live Mandi Prices Tool (`get_mandi_prices`)**: Fetches **real-time e-NAM market rates** per quintal for crops (Wheat, Paddy, Mustard, Soybean, Sugarcane, Cotton) with today's date context.
 - **🔗 Tool Chaining**: Automatically chains Day 4 SQLite memory with Day 5 live tools (e.g. uses saved district `Noida` to query weather and mandi rates without asking the farmer again).
-- **🛡️ Spoken Graceful Fallback**: If an external API times out or fails, Kisan Vaani speaks a polite Indian helpline advisory out loud (*"माफ़ी चाहता हूँ, मौसम सर्वर से अभी संपर्क नहीं हो पा रहा है..."*) instead of hallucinating fake numbers or crashing.
+- **🗄️ Day 4 Persistent SQLite Memory**: Remembers farmer profiles across calls (name, district, crops grown, land size) with explicit caller consent.
+- **🛡️ Spoken Graceful Fallback**: If an external API times out or fails, Kisan Vaani speaks a polite Indian helpline advisory out loud (*"माफ़ी चाहता हूँ, मौसम सर्वर से अभी संपर्क नहीं हो पा रहा है..."*).
 - **⚡ Sub-100ms Latency**: Streaming audio responses powered by Murf Falcon low-latency TTS (`Anisha`).
 - **💬 Real-Time Live Transcript UI**: Displays live Hindi Devanagari speech bubbles on the visual farm cover dashboard.
 
@@ -24,15 +26,16 @@
 
 ```mermaid
 flowchart LR
-    A[🎙️ Farmer Speaks] -->|Audio Stream| B[Deepgram Nova-3 STT]
+    A[🎙️ Outbound Alert / Inbound Call] -->|Audio Stream| B[Deepgram Nova-3 STT]
     B -->|Hindi/English Text| C[Groq Llama 3.3 70B]
-    C -->|Tool Call| D1[SQLite kisan_memory.db]
-    C -->|Tool Call| D2[Open-Meteo Live Weather API]
-    C -->|Tool Call| D3[e-NAM Mandi Price Tool]
-    D1 & D2 & D3 -->|Tool Results| C
+    C -->|Memory Tool| D1[SQLite kisan_memory.db]
+    C -->|Weather Tool| D2[Open-Meteo Live Weather API]
+    C -->|Mandi Tool| D3[e-NAM Mandi Price Tool]
+    C -->|Opt-Out Tool| D4[Alert Unsubscribe Engine]
+    D1 & D2 & D3 & D4 -->|Tool Results| C
     C -->|Native Hindi Text| E[Murf Falcon TTS Anisha]
     E -->|Low-Latency Audio| F[LiveKit Agents WebRTC]
-    F -->|Real-time Stream| G[🔊 Farmer Hears]
+    F -->|Real-time Stream| G[🔊 Farmer Hears Alert]
 ```
 
 ---
@@ -44,7 +47,7 @@ flowchart LR
 - **LLM**: [Groq](https://groq.com/) (`llama-3.3-70b-versatile`)
 - **Transport**: [LiveKit Agents](https://docs.livekit.io/agents)
 - **Live Data APIs**: Open-Meteo Geocoding & Weather REST API, e-NAM Mandi Price Engine
-- **Memory Store**: SQLite (`kisan_memory.db`)
+- **Memory & Alerts**: SQLite (`kisan_memory.db`), Outbound Alert Dispatcher
 - **Frontend**: Next.js 15, Turbopack, Tailwind CSS, LiveKit Components
 
 ---
@@ -84,7 +87,7 @@ cd frontend
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser and click **🌾 Baat Karo / Start Call**!
+Open `http://localhost:3000` in your browser and click **📞 Trigger Outbound Call Alert**!
 
 ---
 
