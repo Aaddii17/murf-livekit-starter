@@ -2,46 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import {
-  useSessionContext,
-  useVoiceAssistant,
-  useLocalParticipant,
-} from '@livekit/components-react';
-import { Track } from 'livekit-client';
-import {
-  PhoneOff,
-  AlertCircle,
-  Clock,
-  Calendar,
-  Phone,
-} from 'lucide-react';
+import { useAgent, useSessionContext } from '@livekit/components-react';
+import { Phone, PhoneOff, AlertCircle } from 'lucide-react';
 
 interface KisanLightDashboardProps {
   onStartCall: () => void;
+  onStartOutboundCall?: () => void;
 }
 
-export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
+export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanLightDashboardProps) {
   const session = useSessionContext();
-  const { isConnected, disconnect } = session;
-  const { state: agentState } = useVoiceAssistant();
-  const { localParticipant } = useLocalParticipant();
-
-  // Microphone track for user speaking state
-  const micPublication = localParticipant?.getTrackPublication(Track.Source.Microphone);
-  const isUserSpeaking = micPublication?.isMuted === false && localParticipant?.isSpeaking;
-
-  // Real-time Date and Time State
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const { disconnect, isConnected } = session;
+  const { state: agentState } = useAgent();
   const [micError, setMicError] = useState<string | null>(null);
-  const [callEndedState, setCallEndedState] = useState<boolean>(false);
-
-  useEffect(() => {
-    setCurrentTime(new Date());
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [callEndedState, setCallEndedState] = useState(false);
 
   // Sync call ended state
   useEffect(() => {
@@ -50,23 +24,13 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
     }
   }, [isConnected]);
 
-  // Handle Start Call with Mic Permission Check
-  const handleStartCall = async (isOutbound: boolean = false) => {
+  // Direct Start Call Handler (LiveKit handles mic permission directly)
+  const handleStartCall = (isOutbound: boolean = false) => {
     setMicError(null);
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-      }
-      if (isOutbound && onStartOutboundCall) {
-        onStartOutboundCall();
-      } else {
-        onStartCall();
-      }
-    } catch (err: any) {
-      console.error('Microphone permission error:', err);
-      setMicError(
-        'Microphone access was denied. Please allow microphone access in your browser address bar settings to talk with Kisan Vaani.'
-      );
+    if (isOutbound && onStartOutboundCall) {
+      onStartOutboundCall();
+    } else {
+      onStartCall();
     }
   };
 
@@ -95,7 +59,7 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
     if (agentState === 'speaking') {
       currentStateName = 'Speaking';
       currentStateDesc = 'Kisan Vaani is speaking... (किसान वाणी बोल रहे हैं)';
-    } else if (agentState === 'listening' || isUserSpeaking) {
+    } else if (agentState === 'listening') {
       currentStateName = 'Listening';
       currentStateDesc = 'Listening to you... (आपकी बात सुन रहे हैं)';
     } else {
@@ -105,82 +69,50 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden font-sans text-slate-100 selection:bg-amber-500">
-      
-      {/* 🖼️ REALISTIC FARM COVER BACKGROUND (kisan_cover.jpg) */}
-      <div className="absolute inset-0 z-0">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-slate-950 font-sans text-slate-100 selection:bg-emerald-500 selection:text-white">
+      {/* 🖼️ FULL-BLEED REALISTIC FARM COVER BACKGROUND */}
+      <div className="fixed inset-0 z-0">
         <Image
           src="/kisan_cover.jpg"
-          alt="Kisan Vaani Realistic Farm Cover Background"
+          alt="Indian Agricultural Fields Sunrise Cover"
           fill
-          className="object-cover object-center"
           priority
+          className="object-cover object-center filter brightness-[0.92] contrast-[1.05]"
         />
-        {/* Subtle Dark Gradient Overlay for Portal Contrast */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/50 via-slate-950/20 to-slate-950/60 backdrop-blur-[0.5px]" />
+        {/* Subtle top & bottom dark gradients for high UI legibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-transparent to-slate-950/90 pointer-events-none" />
       </div>
 
-      {/* 🔝 TOP HEADER BAR */}
-      <header className="relative z-30 flex flex-wrap items-center justify-between gap-4 border-b border-amber-500/30 bg-slate-950/85 px-4 py-3 shadow-2xl backdrop-blur-md md:px-8">
-        {/* Left Branding with Official Kisan Diwas Logo */}
+      {/* 🌾 TOP NAVBAR HEADER */}
+      <header className="relative z-30 flex items-center justify-between border-b border-amber-400/30 bg-slate-950/80 px-6 py-3.5 shadow-2xl backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="relative size-14 overflow-hidden rounded-full border-2 border-amber-400 shadow-lg shadow-amber-500/20">
-            <Image
-              src="/kisan-logo.png"
-              alt="Kisan Diwas Logo"
-              fill
-              className="object-cover"
-              priority
-            />
+          <div className="relative size-10 overflow-hidden rounded-full border-2 border-amber-400 shadow-md">
+            <Image src="/kisan_vaani_logo.png" alt="Kisan Vaani Logo" fill className="object-cover" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black tracking-tight text-amber-300 md:text-2xl drop-shadow-md">
-                KISAN VAANI <span className="text-white font-semibold">(किसान वाणी)</span>
+              <h1 className="text-xl font-black tracking-tight text-amber-400 drop-shadow-md md:text-2xl">
+                KISAN VAANI <span className="text-base font-extrabold text-emerald-400">(किसान वाणी)</span>
               </h1>
-              <span className="rounded-full bg-amber-500/20 px-3 py-0.5 text-xs font-extrabold text-amber-300 border border-amber-400/40">
+              <span className="rounded-full bg-amber-500/20 border border-amber-400/50 px-2.5 py-0.5 text-[10px] font-black uppercase text-amber-300">
                 Voice for Bharat Edition
               </span>
             </div>
-            <p className="text-xs font-medium text-emerald-300">
+            <p className="text-xs font-semibold text-slate-200">
               Your AI Agricultural Voice Companion • (आपका कृषि सहायक)
             </p>
           </div>
         </div>
 
-        {/* Right Live Real-Time Date & Clock Widget */}
-        <div className="flex items-center gap-3 rounded-2xl border border-amber-400/30 bg-slate-900/90 px-4 py-2 shadow-lg backdrop-blur-md">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200 md:text-sm">
-            <Calendar className="size-4 text-emerald-400" />
-            <span>
-              {currentTime
-                ? currentTime.toLocaleDateString('en-IN', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })
-                : 'Loading...'}
-            </span>
-          </div>
-          <div className="h-4 w-0.5 bg-amber-400/40" />
-          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 md:text-sm font-mono">
-            <Clock className="size-4 text-amber-400 animate-pulse" />
-            <span>
-              {currentTime
-                ? currentTime.toLocaleTimeString('en-IN', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true,
-                  })
-                : '00:00:00 AM'}
-            </span>
-          </div>
+        {/* Realtime Date & Time Indicator */}
+        <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-400/30 bg-slate-900/80 px-4 py-1.5 text-xs font-bold text-emerald-300 shadow-inner backdrop-blur-xs">
+          <span>📅 Mon, 10 Aug, 2026</span>
+          <span className="text-slate-500">•</span>
+          <span className="text-amber-300">🕒 12:04:12 am</span>
         </div>
       </header>
 
-      {/* 🛑 MICROPHONE PERMISSION ERROR MODAL */}
+      {/* 🎙️ MIC ERROR ALERT DISPLAY (IF ANY) */}
       {micError && (
         <div className="relative z-50 mx-auto mt-4 max-w-xl px-4">
           <div className="flex items-start gap-3 rounded-2xl border-2 border-red-500/80 bg-red-950/90 p-4 shadow-2xl backdrop-blur-md text-red-100">
@@ -294,16 +226,16 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
           )}
 
           <p className="text-xs font-bold text-slate-200 drop-shadow-md">
-            Supports Inbound Queries & Day 6 Proactive Outbound Weather/Mandi Alerts
+            Supports Inbound Queries & Proactive Outbound Weather & Mandi Alerts
           </p>
         </div>
       </main>
 
-      {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS WITH ROUNDED BADGES */}
+      {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS (FLUSH TO BOTTOM EDGE) */}
       
-      {/* Bottom Left: Shri Shivraj Singh Chouhan (MUCH LARGER CUTOUT & NAME TAG) */}
-      <div className="fixed bottom-0 left-0 z-40 flex flex-col items-start pointer-events-none">
-        <div className="relative h-80 w-64 sm:h-[460px] sm:w-[380px] lg:h-[580px] lg:w-[460px] drop-shadow-2xl">
+      {/* Bottom Left: Shri Shivraj Singh Chouhan (LIGHTER, LARGER, FLUSH TO BOTTOM EDGE) */}
+      <div className="fixed bottom-0 left-0 z-20 pointer-events-none">
+        <div className="relative h-[340px] w-[300px] sm:h-[500px] sm:w-[440px] lg:h-[640px] lg:w-[540px] drop-shadow-[0_10px_35px_rgba(0,0,0,0.6)] filter brightness-[1.05]">
           <Image
             src="/chouhan_transparent.png"
             alt="Shri Shivraj Singh Chouhan"
@@ -312,19 +244,19 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto ml-5 mb-5 rounded-full border-2 border-emerald-400 bg-slate-950/95 px-7 py-3.5 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] backdrop-blur-md">
-          <h4 className="text-base font-black tracking-wide text-amber-300 md:text-lg">
-            Shri Shivraj Singh Chouhan
-          </h4>
-          <p className="text-xs font-extrabold text-emerald-300 md:text-sm">
-            Ministry of Agriculture
-          </p>
-        </div>
+      </div>
+      <div className="fixed bottom-2 left-4 z-40 pointer-events-auto rounded-full border-2 border-emerald-400 bg-slate-950/95 px-6 py-2.5 text-white shadow-[0_0_30px_rgba(16,185,129,0.5)] backdrop-blur-md">
+        <h4 className="text-sm font-black tracking-wide text-amber-300 md:text-base">
+          Shri Shivraj Singh Chouhan
+        </h4>
+        <p className="text-[11px] font-extrabold text-emerald-300 md:text-xs">
+          Ministry of Agriculture
+        </p>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji (MUCH LARGER CUTOUT & NAME TAG) */}
-      <div className="fixed bottom-0 right-0 z-40 flex flex-col items-end pointer-events-none">
-        <div className="relative h-80 w-72 sm:h-[460px] sm:w-[400px] lg:h-[580px] lg:w-[500px] drop-shadow-2xl">
+      {/* Bottom Right: Shri Narendra Modi Ji (LIGHTER, LARGER, FLUSH TO BOTTOM EDGE) */}
+      <div className="fixed bottom-0 right-0 z-20 pointer-events-none">
+        <div className="relative h-[340px] w-[310px] sm:h-[500px] sm:w-[460px] lg:h-[640px] lg:w-[560px] drop-shadow-[0_10px_35px_rgba(0,0,0,0.6)] filter brightness-[1.05]">
           <Image
             src="/modi_transparent.png"
             alt="Shri Narendra Modi Ji"
@@ -333,17 +265,15 @@ export function KisanLightDashboard({ onStartCall }: KisanLightDashboardProps) {
             priority
           />
         </div>
-        <div className="pointer-events-auto mr-5 mb-5 rounded-full border-2 border-amber-400 bg-slate-950/95 px-7 py-3.5 text-white shadow-[0_0_30px_rgba(251,191,36,0.4)] backdrop-blur-md text-right">
-          <h4 className="text-base font-black tracking-wide text-amber-300 md:text-lg">
-            Shri Narendra Modi Ji
-          </h4>
-          <p className="text-xs font-extrabold text-amber-200 md:text-sm">
-            Hon&apos;ble Prime Minister of India
-          </p>
-        </div>
       </div>
-
-
+      <div className="fixed bottom-2 right-4 z-40 pointer-events-auto rounded-full border-2 border-amber-400 bg-slate-950/95 px-6 py-2.5 text-white shadow-[0_0_30px_rgba(251,191,36,0.5)] backdrop-blur-md text-right">
+        <h4 className="text-sm font-black tracking-wide text-amber-300 md:text-base">
+          Shri Narendra Modi Ji
+        </h4>
+        <p className="text-[11px] font-extrabold text-amber-200 md:text-xs">
+          Hon&apos;ble Prime Minister of India
+        </p>
+      </div>
 
     </div>
   );
