@@ -6,6 +6,7 @@ import sqlite3
 import json
 import aiohttp
 import asyncio
+import random
 from datetime import datetime
 
 if sys.platform == "win32":
@@ -32,7 +33,7 @@ logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
 
-# Day 4: SQLite Database for Persistent Farmer Memory
+# Day 4 & Day 7: SQLite Database for Persistent Farmer Memory & Escalations
 DB_PATH = os.path.join(os.path.dirname(__file__), "kisan_memory.db")
 
 
@@ -50,6 +51,18 @@ def init_db():
             last_topic TEXT,
             consent_given INTEGER DEFAULT 0,
             last_interaction TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS escalations (
+            ticket_id TEXT PRIMARY KEY,
+            farmer_name TEXT,
+            district TEXT,
+            crop TEXT,
+            issue_description TEXT,
+            urgency_level TEXT,
+            status TEXT DEFAULT 'OPEN',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     conn.commit()
@@ -260,21 +273,67 @@ async def opt_out_alerts(name_or_id: str = "farmer") -> str:
     }, ensure_ascii=False)
 
 
+# Day 7: Human Help & KVK Krishi Officer Escalation Tool
+@llm.function_tool(
+    name="create_human_escalation",
+    description="Create an emergency ticket for a human Krishi Vigyan Kendra (KVK) Agricultural Specialist when severe crop disease, pest infestation, or complex financial dispute occurs. Call ONLY AFTER asking caller permission.",
+)
+async def create_human_escalation(
+    farmer_name: str = "रमेश",
+    district: str = "नोएडा",
+    crop: str = "गेहूँ",
+    issue_description: str = "फसल में पीला रतुआ रोग (Yellow Rust) और गंभीर कीट प्रकोप",
+    urgency_level: str = "High",
+) -> str:
+    logger.info(f"Executing Day 7 Tool: create_human_escalation for '{farmer_name}', issue='{issue_description}'")
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    ticket_id = f"KV-{random.randint(1000, 9999)}"
+    cursor.execute(
+        "INSERT INTO escalations (ticket_id, farmer_name, district, crop, issue_description, urgency_level, status) VALUES (?, ?, ?, ?, ?, ?, 'OPEN')",
+        (ticket_id, farmer_name, district, crop, issue_description, urgency_level),
+    )
+    conn.commit()
+    conn.close()
+
+    result = {
+        "status": "ticket_created",
+        "ticket_id": ticket_id,
+        "farmer_name": farmer_name,
+        "district": district,
+        "crop": crop,
+        "issue": issue_description,
+        "urgency": urgency_level,
+        "assigned_to": "Krishi Vigyan Kendra (KVK) Senior Agricultural Officer",
+        "expected_callback": "Within 24 hours",
+        "spoken_confirmation": f"{farmer_name} जी, आपकी समस्या संदर्भ संख्या {ticket_id} के तहत दर्ज कर ली गई है। 24 घंटे के भीतर कृषि विशेषज्ञ आपसे संपर्क करेंगे।",
+    }
+    logger.info(f"Created Day 7 Ticket: {result}")
+    return json.dumps(result, ensure_ascii=False)
+
+
 def get_kisan_system_prompt() -> str:
     now = datetime.now()
     current_time_str = now.strftime("%A, %d %B %Y, %I:%M %p")
     return f"""[IDENTITY]
 You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for farmers. Today's date: {current_time_str}.
 
-[DAY 6 OUTBOUND CALL MANDATORY RULES]
+[DAY 7 HUMAN HELP & KVK ESCALATION RULES - COMPULSORY]
+1. IDENTIFY SEVERE PROBLEMS: When a farmer reports a severe crop disease (e.g. yellow rust, blight, pink bollworm, heavy pest attack) or subsidy/loan dispute, DO NOT INVENT A DIAGNOSIS.
+2. ASK PERMISSION FIRST: YOU MUST EXPLICITLY ASK: "क्या मैं यह समस्या कृषि विज्ञान केंद्र (KVK) के अधिकारी को भेजने के लिए आपकी अनुमति से टिकट दर्ज करूँ?"
+3. IF FARMER SAYS YES ➔ Call `create_human_escalation(farmer_name, district, crop, issue_description, urgency_level)` immediately!
+4. SPEAK TICKET ID: State the Reference ID clearly: "रमेश जी, आपकी शिकायत संदर्भ संख्या KV-XXXX के तहत दर्ज हो गई है। 24 घंटे में कृषि अधिकारी संपर्क करेंगे।"
+5. IF FARMER SAYS NO ➔ Respect privacy and do NOT call `create_human_escalation`.
+6. NORMAL CONVERSATIONS: Normal weather, fertilizer, or price queries MUST NOT trigger human escalation.
+
+[DAY 6 OUTBOUND CALL RULES]
 1. If room contains 'outbound', OPEN IMMEDIATELY WITH THIS 3-PART GREETING IN DEVANAGARI:
    "नमस्ते! मैं किसान वाणी कृषि सेवा से बोल रहा हूँ। आपके नोएडा क्षेत्र में आज भारी बारिश (94% संभावना) और गेहूँ का मंडी भाव ₹2,550 होने का अर्जेंट अलर्ट है। यदि आप यह अलर्ट सेवा बंद करना चाहते हैं, तो कृपया 'बंद करो' कहें।"
-2. If caller says "बंद करो" or "alert stop", call `opt_out_alerts()` immediately and say: "ठीक है, आपकी फोन अलर्ट सेवा सफलतापूर्वक बंद कर दी गई है। आपका दिन शुभ हो!"
+2. If caller says "बंद करो", call `opt_out_alerts()` and confirm unsubscription.
 
-[DAY 4 PERSISTENT MEMORY & CONSENT RULES]
+[DAY 4 PERSISTENT MEMORY]
 1. LOOKUP: When caller shares name, call `lookup_farmer_profile(name)`.
-2. CONSENT: Before saving new facts, ask permission: "क्या मैं आपकी यह जानकारी भविष्य के लिए याद रख सकता हूँ?"
-3. FORGET: If caller asks to delete memory, call `forget_farmer_profile(name)`.
+2. CONSENT: Before saving facts, ask permission: "क्या मैं आपकी यह जानकारी भविष्य के लिए याद रख सकता हूँ?"
 
 [DAY 5 TOOLS]
 - Call `get_weather_forecast(district)` for weather queries.
@@ -282,7 +341,7 @@ You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for fa
 
 [CRITICAL VOICE & SCRIPT RULES]
 - ALWAYS write Hindi in Devanagari script (e.g. "नमस्ते! मैं किसान वाणी हूँ।").
-- ABSOLUTELY NEVER write or output raw function tags, function names, JSON, brackets, or 'function=' strings in your spoken output text.
+- ABSOLUTELY NEVER write or output raw function tags, JSON, or 'function=' strings in spoken text.
 - Keep responses short, direct, and under 25 words."""
 
 
@@ -297,6 +356,7 @@ class Assistant(Agent):
                 get_weather_forecast,
                 get_mandi_prices,
                 opt_out_alerts,
+                create_human_escalation,
             ],
         )
 
