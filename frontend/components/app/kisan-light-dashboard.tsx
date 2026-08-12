@@ -16,6 +16,29 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
   const { state: agentState } = useAgent();
   const [micError, setMicError] = useState<string | null>(null);
   const [callEndedState, setCallEndedState] = useState(false);
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
+
+  // Real-time Live Clock Timer
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      };
+      setCurrentTimeStr(now.toLocaleString('en-IN', options));
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Sync call ended state
   useEffect(() => {
@@ -87,7 +110,7 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
       <header className="relative z-30 flex items-center justify-between border-b border-amber-400/30 bg-slate-950/80 px-6 py-3.5 shadow-2xl backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="relative size-10 overflow-hidden rounded-full border-2 border-amber-400 shadow-md">
-            <Image src="/kisan_vaani_logo.png" alt="Kisan Vaani Logo" fill className="object-cover" />
+            <Image src="/kisan-logo.png" alt="Kisan Vaani Logo" fill className="object-cover" priority />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -104,11 +127,9 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
           </div>
         </div>
 
-        {/* Realtime Date & Time Indicator */}
+        {/* Realtime Live Dynamic Clock Indicator */}
         <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-400/30 bg-slate-900/80 px-4 py-1.5 text-xs font-bold text-emerald-300 shadow-inner backdrop-blur-xs">
-          <span>📅 Mon, 10 Aug, 2026</span>
-          <span className="text-slate-500">•</span>
-          <span className="text-amber-300">🕒 12:04:12 am</span>
+          <span>🕒 {currentTimeStr || 'Live India Time'}</span>
         </div>
       </header>
 
