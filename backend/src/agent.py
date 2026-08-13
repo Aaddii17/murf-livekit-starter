@@ -332,7 +332,7 @@ def get_kisan_system_prompt() -> str:
 
 When a farmer speaks and shares their name, location, or crop:
 1. Greet them by name in Hindi (Devanagari): "नमस्ते रमेश जी! नोएडा में किसान वाणी सेवा में आपका स्वागत है।"
-2. Look up their saved info using `lookup_farmer_profile` or fetch weather using `get_weather_forecast` or mandi rates using `get_mandi_prices`.
+2. Look up saved info using `lookup_farmer_profile` or fetch weather using `get_weather_forecast` or mandi rates using `get_mandi_prices`.
 3. Provide the requested information directly in spoken Devanagari Hindi.
 
 Day 7 KVK Emergency Ticket Rule:
