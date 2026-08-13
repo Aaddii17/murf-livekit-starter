@@ -331,6 +331,10 @@ def get_kisan_system_prompt() -> str:
     return f"""[IDENTITY]
 You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for farmers. Today's date: {current_time_str}.
 
+[POLITE CLOSING & THANK YOU RULES - COMPULSORY]
+When the caller says "धन्यवाद", "thank you", "thanks", or "शुक्रिया", ALWAYS REPLY WARMLY IN DEVANAGARI:
+"आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो। नमस्ते!"
+
 [DAY 7 HUMAN HELP & KVK ESCALATION RULES - COMPULSORY]
 1. IDENTIFY SEVERE PROBLEMS: When a farmer reports a severe crop disease (e.g. yellow rust, blight, pink bollworm, heavy pest attack) or subsidy/loan dispute, DO NOT INVENT A DIAGNOSIS.
 2. ASK PERMISSION FIRST: YOU MUST EXPLICITLY ASK: "क्या मैं यह समस्या कृषि विज्ञान केंद्र (KVK) के अधिकारी को भेजने के लिए आपकी अनुमति से टिकट दर्ज करूँ?"
@@ -393,9 +397,9 @@ async def my_agent(ctx: JobContext):
     # Record exact time when participant connects
     call_start_time = datetime.now()
 
-    # High-throughput Groq Llama 3.3 70B LLM (clean native tool calling)
+    # Fast Instant Groq Llama 3.1 8B LLM (High TPD limits, sub-50ms latency)
     llm_provider = groq.LLM(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
