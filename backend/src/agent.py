@@ -354,10 +354,10 @@ You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for fa
 
 [CONVERSATION RULES]
 - Answer ONLY requested weather/mandi info directly.
-- ONLY IF caller says "धन्यवाद", "thank you", or "thanks", reply: "आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो।"
+- ONLY IF caller explicitly says "धन्यवाद", "thank you", or "thanks", THEN AND ONLY THEN respond: "आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो।"
 - ALWAYS write Hindi in Devanagari script.
 - ABSOLUTELY NEVER output function tags or JSON strings in spoken text.
-- Keep responses under 20 words."""
+- Keep responses short, direct, and under 20 words."""
 
 
 class Assistant(Agent):
@@ -395,9 +395,9 @@ async def my_agent(ctx: JobContext):
     # Record exact time when participant connects
     call_start_time = datetime.now()
 
-    # High-throughput Mixtral 8x7B LLM on Groq (500k TPD limit, zero rate limit issues!)
+    # Ultra-fast active Groq Llama 3.1 8B instant LLM
     llm_provider = groq.LLM(
-        model="mixtral-8x7b-32768",
+        model="llama-3.1-8b-instant",
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
