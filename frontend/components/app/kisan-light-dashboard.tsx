@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useAgent, useSessionContext } from '@livekit/components-react';
-import { Phone, PhoneOff, AlertCircle, BarChart3, X, CheckCircle2, XCircle, Activity, TrendingUp, Clock } from 'lucide-react';
+import { Phone, PhoneOff, AlertCircle, BarChart3, X, CheckCircle2, XCircle, Activity, TrendingUp, Clock, Globe } from 'lucide-react';
 
 interface KisanLightDashboardProps {
   onStartCall: () => void;
@@ -14,6 +14,7 @@ interface CallLogItem {
   call_id: string;
   caller_name: string;
   district: string;
+  language?: string;
   status: string;
   outcome: string;
   duration_sec: number;
@@ -205,7 +206,7 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
                     KISAN VAANI — REAL-TIME CALL ANALYTICS
                   </h2>
                   <p className="text-xs font-bold text-slate-400">
-                    Live Performance, Success Criteria & Call Outcomes (Day 8 SQLite Engine)
+                    Live Performance, Multilingual Support & Call Outcomes (Day 8 SQLite Engine)
                   </p>
                 </div>
               </div>
@@ -261,15 +262,18 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
             </div>
 
             {/* DAY 8 SUCCESS CONDITION EXPLANATION BANNER */}
-            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 mb-6 text-xs text-amber-200 leading-relaxed">
-              <span className="font-black text-amber-400">🌾 Day 8 Definition of Success:</span> A call is marked <strong className="text-emerald-300">SUCCESSFUL</strong> when the farmer receives requested mandi price or weather info, loads saved SQLite memory, or registers an emergency KVK officer escalation ticket. A call is marked <strong className="text-red-300">FAILED</strong> if the user hangs up prematurely before completing their inquiry.
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 mb-6 text-xs text-amber-200 leading-relaxed flex items-start gap-3">
+              <Globe className="size-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-black text-amber-400">🌾 Multilingual Bharat Support:</span> Kisan Vaani supports automatic speech recognition & native responses across Indian regional languages (Hindi Devanagari, Kannada, Marathi, Punjabi, Tamil). A call is marked <strong className="text-emerald-300">SUCCESSFUL</strong> when farmer queries are answered or KVK tickets are created.
+              </div>
             </div>
 
-            {/* RECENT CALL LOGS TABLE */}
+            {/* RECENT CALL LOGS TABLE WITH LANGUAGE COLUMN */}
             <div>
               <h3 className="text-sm font-black tracking-wider uppercase text-slate-300 mb-3 flex items-center gap-2">
                 <Clock className="size-4 text-amber-400" />
-                <span>Recent Call History & Outcomes (Protected Privacy Log)</span>
+                <span>Recent Call History & Language Log (Protected Privacy Log)</span>
               </h3>
 
               <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/70">
@@ -278,6 +282,7 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
                     <tr>
                       <th className="px-4 py-3">Call ID</th>
                       <th className="px-4 py-3">Caller & District</th>
+                      <th className="px-4 py-3">Language (भाषा)</th>
                       <th className="px-4 py-3">Outcome Summary</th>
                       <th className="px-4 py-3">Duration</th>
                       <th className="px-4 py-3 text-right">Status</th>
@@ -290,6 +295,11 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
                         <td className="px-4 py-3 text-slate-200">
                           <div>{log.caller_name}</div>
                           <div className="text-[10px] text-slate-400">{log.district}</div>
+                        </td>
+                        <td className="px-4 py-3 text-emerald-300 font-semibold">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-400/30 px-2 py-0.5 text-[11px]">
+                            🇮🇳 {log.language || 'Hindi (हिंदी)'}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-slate-300 max-w-xs truncate">{log.outcome}</td>
                         <td className="px-4 py-3 text-slate-400 font-mono">{log.duration_sec}s</td>

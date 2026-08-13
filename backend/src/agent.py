@@ -71,6 +71,7 @@ def init_db():
             room_name TEXT,
             caller_name TEXT,
             district TEXT,
+            language TEXT DEFAULT 'Hindi (हिंदी)',
             status TEXT,
             outcome TEXT,
             duration_sec INTEGER,
@@ -340,7 +341,7 @@ You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for fa
 
 [DAY 6 OUTBOUND CALL RULES]
 1. If room contains 'outbound', OPEN IMMEDIATELY WITH THIS 3-PART GREETING IN DEVANAGARI:
-   "नमस्ते! मैं किसान वाणी कृषि सेवा से बोल रहा हूँ। आपके नोएडा क्षेत्र में आज भारी बारिश (94% संभावना) और गेहूँ का मंडी भाव ₹2,550 होने का अर्जент अलर्ट है। यदि आप यह अलर्ट सेवा बंद करना चाहते हैं, तो कृपया 'बंद करो' कहें।"
+   "नमस्ते! मैं किसान वाणी कृषि सेवा से बोल रहा हूँ। आपके नोएडा क्षेत्र में आज भारी बारिश (94% संभावना) और गेहूँ का मंडी भाव ₹2,550 होने का अर्जेंट अलर्ट है। यदि आप यह अलर्ट सेवा बंद करना चाहते हैं, तो कृपया 'बंद करो' कहें।"
 2. If caller says "बंद करो", call `opt_out_alerts()` and confirm unsubscription.
 
 [DAY 4 PERSISTENT MEMORY]
@@ -480,8 +481,8 @@ async def my_agent(ctx: JobContext):
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT OR IGNORE INTO call_logs (call_id, room_name, caller_name, district, status, outcome, duration_sec) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (call_id, room_name, "रमेश (Ramesh)", "नोएडा (Noida)", status, outcome, duration_sec),
+                "INSERT OR IGNORE INTO call_logs (call_id, room_name, caller_name, district, language, status, outcome, duration_sec) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (call_id, room_name, "रमेश (Ramesh)", "नोएडा (Noida)", "Hindi (हिंदी)", status, outcome, duration_sec),
             )
             conn.commit()
             conn.close()
