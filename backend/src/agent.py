@@ -26,7 +26,7 @@ from livekit.agents import (
     room_io,
     llm,
 )
-from livekit.plugins import murf, silero, deepgram, google, noise_cancellation
+from livekit.plugins import murf, silero, deepgram, groq, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("agent")
@@ -352,13 +352,12 @@ You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for fa
 - Call `get_weather_forecast(district)` for weather queries.
 - Call `get_mandi_prices(crop, district)` for market price queries.
 
-[CONVERSATION & COURTESY RULES]
-- When caller asks for weather or mandi price, answer ONLY the requested information directly.
-- DO NOT say closing greetings during tool answers.
-- ONLY IF the caller explicitly says "धन्यवाद", "thank you", "thanks", or "शुक्रिया", THEN AND ONLY THEN respond: "आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो।"
-- ALWAYS write Hindi in Devanagari script (e.g. "नमस्ते! मैं किसान वाणी हूँ।").
-- ABSOLUTELY NEVER write or output raw function tags, JSON, or 'function=' strings in spoken text.
-- Keep responses short, direct, and under 25 words."""
+[CONVERSATION RULES]
+- Answer ONLY requested weather/mandi info directly.
+- ONLY IF caller says "धन्यवाद", "thank you", or "thanks", reply: "आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो।"
+- ALWAYS write Hindi in Devanagari script.
+- ABSOLUTELY NEVER output function tags or JSON strings in spoken text.
+- Keep responses under 20 words."""
 
 
 class Assistant(Agent):
@@ -396,10 +395,10 @@ async def my_agent(ctx: JobContext):
     # Record exact time when participant connects
     call_start_time = datetime.now()
 
-    # Ultra-high limit Google Gemini Flash LLM (4M TPM limit, zero rate limits!)
-    llm_provider = google.LLM(
-        model="gemini-2.5-flash",
-        api_key=os.getenv("GOOGLE_API_KEY"),
+    # High-performance Groq LLM with Llama 3.3 70B
+    llm_provider = groq.LLM(
+        model="llama-3.3-70b-versatile",
+        api_key=os.getenv("GROQ_API_KEY"),
     )
 
     # Official Murf AI Multilingual Session
