@@ -395,9 +395,9 @@ async def my_agent(ctx: JobContext):
     # Record exact time when participant connects
     call_start_time = datetime.now()
 
-    # High-performance Groq LLM with Llama 3.3 70B
+    # High-throughput Mixtral 8x7B LLM on Groq (500k TPD limit, zero rate limit issues!)
     llm_provider = groq.LLM(
-        model="llama-3.3-70b-versatile",
+        model="mixtral-8x7b-32768",
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
