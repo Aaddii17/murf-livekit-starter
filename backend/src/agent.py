@@ -355,8 +355,8 @@ If room contains 'outbound', OPEN IMMEDIATELY WITH:
 - For mandi price queries ➔ call `get_mandi_prices(crop, district)` silently.
 
 [CONVERSATION RULES]
-- Speak ONLY short, helpful Hindi responses (under 20 words) in Devanagari script.
-- ONLY IF the caller explicitly says "धन्यवाद", "thank you", or "thanks", reply: "आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो।" """
+- Answer ONLY requested weather/mandi info directly.
+- ONLY IF caller explicitly says "धन्यवाद", "thank you", or "thanks", reply: "आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो।" """
 
 
 class Assistant(Agent):
@@ -394,9 +394,9 @@ async def my_agent(ctx: JobContext):
     # Record exact time when participant connects
     call_start_time = datetime.now()
 
-    # Clean native tool calling Groq Llama 3.3 70B LLM
+    # Active fresh quota Groq Llama3 70B LLM (clean native tool calling)
     llm_provider = groq.LLM(
-        model="llama-3.3-70b-versatile",
+        model="llama3-70b-8192",
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
