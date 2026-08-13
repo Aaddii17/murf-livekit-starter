@@ -389,7 +389,8 @@ async def my_agent(ctx: JobContext):
         "room": ctx.room.name,
     }
 
-    start_time = datetime.now()
+    # Record exact time when participant connects
+    call_start_time = datetime.now()
 
     # High-throughput Groq Llama 3.3 70B LLM (clean native tool calling)
     llm_provider = groq.LLM(
@@ -429,6 +430,7 @@ async def my_agent(ctx: JobContext):
         )
 
         await ctx.connect()
+        call_start_time = datetime.now()
 
         # Detect Outbound Call Room vs Inbound Call
         is_outbound = "outbound" in ctx.room.name.lower()
@@ -445,12 +447,11 @@ async def my_agent(ctx: JobContext):
             )
     finally:
         end_time = datetime.now()
-        duration_sec = max(1, int((end_time - start_time).total_seconds()))
+        duration_sec = max(1, int((end_time - call_start_time).total_seconds()))
         call_id = f"CALL-{random.randint(10000, 99999)}"
         room_name = ctx.room.name
 
         # Day 8 Definition of Success logic:
-        # A call is SUCCESSFUL if duration > 5 sec or tools completed inquiry
         if duration_sec >= 5:
             status = "SUCCESS"
             outcome = "गेहूँ मंडी भाव व मौसम सलाह प्राप्त की" if "outbound" not in room_name.lower() else "आउटबाउंड अलर्ट व ऑप्ट-आउट पूरा हुआ"
