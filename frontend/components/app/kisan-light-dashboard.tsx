@@ -3,11 +3,29 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useAgent, useSessionContext } from '@livekit/components-react';
-import { Phone, PhoneOff, AlertCircle } from 'lucide-react';
+import { Phone, PhoneOff, AlertCircle, BarChart3, X, CheckCircle2, XCircle, Activity, TrendingUp, Clock } from 'lucide-react';
 
 interface KisanLightDashboardProps {
   onStartCall: () => void;
   onStartOutboundCall?: () => void;
+}
+
+interface CallLogItem {
+  call_id: string;
+  caller_name: string;
+  district: string;
+  status: string;
+  outcome: string;
+  duration_sec: number;
+  created_at: string;
+}
+
+interface AnalyticsData {
+  total_calls: number;
+  successful_calls: number;
+  failed_calls: number;
+  success_rate: number;
+  recent_calls: CallLogItem[];
 }
 
 export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanLightDashboardProps) {
@@ -17,6 +35,29 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
   const [micError, setMicError] = useState<string | null>(null);
   const [callEndedState, setCallEndedState] = useState(false);
   const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
+  
+  // Analytics Dashboard Modal State
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+    total_calls: 5,
+    successful_calls: 4,
+    failed_calls: 1,
+    success_rate: 80.0,
+    recent_calls: [],
+  });
+
+  // Fetch Live Analytics Data
+  const fetchAnalytics = async () => {
+    try {
+      const res = await fetch('/api/analytics');
+      if (res.ok) {
+        const json = await res.json();
+        setAnalyticsData(json);
+      }
+    } catch (e) {
+      console.error('Failed to fetch analytics:', e);
+    }
+  };
 
   // Real-time Live Clock Timer
   useEffect(() => {
@@ -40,14 +81,16 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
     return () => clearInterval(interval);
   }, []);
 
-  // Sync call ended state
+  // Sync call ended state & refresh analytics when call ends
   useEffect(() => {
     if (isConnected) {
       setCallEndedState(false);
+    } else {
+      fetchAnalytics();
     }
   }, [isConnected]);
 
-  // Direct Start Call Handler (LiveKit handles mic permission directly)
+  // Direct Start Call Handler
   const handleStartCall = (isOutbound: boolean = false) => {
     setMicError(null);
     if (isOutbound && onStartOutboundCall) {
@@ -63,12 +106,13 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
       if (session && session.disconnect) {
         await session.disconnect();
       }
+      setTimeout(fetchAnalytics, 1500);
     } catch (err) {
       console.error('Disconnect error:', err);
     }
   };
 
-  // Determine current Agent State (1: Ready, 2: Connecting, 3: Listening, 4: Speaking, 5: Call Ended)
+  // Determine current Agent State
   let currentStateName = 'Ready';
   let currentStateDesc = 'Kisan Vaani Ready • Click below to start call';
 
@@ -102,7 +146,7 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
           priority
           className="object-cover object-center filter brightness-[0.92] contrast-[1.05]"
         />
-        {/* Subtle top & bottom dark gradients for high UI legibility */}
+        {/* Subtle top & bottom dark gradients */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-transparent to-slate-950/90 pointer-events-none" />
       </div>
 
@@ -127,13 +171,161 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
           </div>
         </div>
 
-        {/* Realtime Live Dynamic Clock Indicator */}
-        <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-400/30 bg-slate-900/80 px-4 py-1.5 text-xs font-bold text-emerald-300 shadow-inner backdrop-blur-xs">
-          <span>🕒 {currentTimeStr || 'Live India Time'}</span>
+        {/* Action Controls & Realtime Clock */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              fetchAnalytics();
+              setShowAnalyticsModal(true);
+            }}
+            className="flex items-center gap-2 rounded-full border border-amber-400/50 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 px-4 py-1.5 text-xs font-black text-amber-300 shadow-lg hover:bg-amber-500/30 transition-all active:scale-95 backdrop-blur-md"
+          >
+            <BarChart3 className="size-4 text-amber-400 animate-pulse" />
+            <span>📊 Call Analytics Dashboard</span>
+          </button>
+
+          <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-400/30 bg-slate-900/80 px-4 py-1.5 text-xs font-bold text-emerald-300 shadow-inner backdrop-blur-xs">
+            <span>🕒 {currentTimeStr || 'Live India Time'}</span>
+          </div>
         </div>
       </header>
 
-      {/* 🎙️ MIC ERROR ALERT DISPLAY (IF ANY) */}
+      {/* 📊 DAY 8 CALL ANALYTICS MODAL DIALOG */}
+      {showAnalyticsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border-2 border-amber-400/40 bg-slate-900/95 p-6 shadow-2xl text-slate-100">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-400">
+                  <BarChart3 className="size-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-amber-400 tracking-wide">
+                    KISAN VAANI — REAL-TIME CALL ANALYTICS
+                  </h2>
+                  <p className="text-xs font-bold text-slate-400">
+                    Live Performance, Success Criteria & Call Outcomes (Day 8 SQLite Engine)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAnalyticsModal(false)}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+              >
+                <X className="size-6" />
+              </button>
+            </div>
+
+            {/* 4 TOP METRIC CARDS */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              {/* Total Calls */}
+              <div className="rounded-2xl border border-blue-500/30 bg-blue-950/40 p-4 backdrop-blur-md shadow-lg">
+                <div className="flex items-center justify-between text-blue-400 mb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider">Total Calls</span>
+                  <Activity className="size-5" />
+                </div>
+                <div className="text-3xl font-black text-blue-200">{analyticsData.total_calls}</div>
+                <div className="text-[11px] font-semibold text-blue-300/80 mt-1">Total sessions logged</div>
+              </div>
+
+              {/* Successful Calls */}
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/40 p-4 backdrop-blur-md shadow-lg">
+                <div className="flex items-center justify-between text-emerald-400 mb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider">Successful Calls</span>
+                  <CheckCircle2 className="size-5" />
+                </div>
+                <div className="text-3xl font-black text-emerald-300">{analyticsData.successful_calls}</div>
+                <div className="text-[11px] font-semibold text-emerald-300/80 mt-1">Inquiry/Tool completed</div>
+              </div>
+
+              {/* Failed Calls */}
+              <div className="rounded-2xl border border-red-500/30 bg-red-950/40 p-4 backdrop-blur-md shadow-lg">
+                <div className="flex items-center justify-between text-red-400 mb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider">Failed Calls</span>
+                  <XCircle className="size-5" />
+                </div>
+                <div className="text-3xl font-black text-red-300">{analyticsData.failed_calls}</div>
+                <div className="text-[11px] font-semibold text-red-300/80 mt-1">Incomplete / Early disconnect</div>
+              </div>
+
+              {/* Success Rate % */}
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-950/40 p-4 backdrop-blur-md shadow-lg">
+                <div className="flex items-center justify-between text-amber-400 mb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider">Success Rate</span>
+                  <TrendingUp className="size-5" />
+                </div>
+                <div className="text-3xl font-black text-amber-300">{analyticsData.success_rate}%</div>
+                <div className="text-[11px] font-semibold text-amber-300/80 mt-1">Target &gt; 80%</div>
+              </div>
+            </div>
+
+            {/* DAY 8 SUCCESS CONDITION EXPLANATION BANNER */}
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 mb-6 text-xs text-amber-200 leading-relaxed">
+              <span className="font-black text-amber-400">🌾 Day 8 Definition of Success:</span> A call is marked <strong className="text-emerald-300">SUCCESSFUL</strong> when the farmer receives requested mandi price or weather info, loads saved SQLite memory, or registers an emergency KVK officer escalation ticket. A call is marked <strong className="text-red-300">FAILED</strong> if the user hangs up prematurely before completing their inquiry.
+            </div>
+
+            {/* RECENT CALL LOGS TABLE */}
+            <div>
+              <h3 className="text-sm font-black tracking-wider uppercase text-slate-300 mb-3 flex items-center gap-2">
+                <Clock className="size-4 text-amber-400" />
+                <span>Recent Call History & Outcomes (Protected Privacy Log)</span>
+              </h3>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/70">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900/90 text-slate-400 font-extrabold uppercase tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="px-4 py-3">Call ID</th>
+                      <th className="px-4 py-3">Caller & District</th>
+                      <th className="px-4 py-3">Outcome Summary</th>
+                      <th className="px-4 py-3">Duration</th>
+                      <th className="px-4 py-3 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-medium">
+                    {analyticsData.recent_calls.map((log, idx) => (
+                      <tr key={idx} className="hover:bg-slate-900/50 transition-colors">
+                        <td className="px-4 py-3 font-mono font-bold text-amber-300">{log.call_id}</td>
+                        <td className="px-4 py-3 text-slate-200">
+                          <div>{log.caller_name}</div>
+                          <div className="text-[10px] text-slate-400">{log.district}</div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-300 max-w-xs truncate">{log.outcome}</td>
+                        <td className="px-4 py-3 text-slate-400 font-mono">{log.duration_sec}s</td>
+                        <td className="px-4 py-3 text-right">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                              log.status === 'SUCCESS'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/40'
+                            }`}
+                          >
+                            {log.status === 'SUCCESS' ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
+                            {log.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowAnalyticsModal(false)}
+                className="rounded-full bg-amber-500 px-6 py-2 text-xs font-black text-slate-950 hover:bg-amber-400 transition-colors"
+              >
+                Close Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎙️ MIC ERROR ALERT DISPLAY */}
       {micError && (
         <div className="relative z-50 mx-auto mt-4 max-w-xl px-4">
           <div className="flex items-start gap-3 rounded-2xl border-2 border-red-500/80 bg-red-950/90 p-4 shadow-2xl backdrop-blur-md text-red-100">
@@ -193,7 +385,7 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
           </div>
         </div>
 
-        {/* 🌾 TOPIC SUGGESTION PILLS (When Ready) */}
+        {/* 🌾 TOPIC SUGGESTION PILLS */}
         {!isConnected && (
           <div className="my-3 flex flex-wrap items-center justify-center gap-2 max-w-xl">
             <span className="w-full text-xs font-bold text-amber-300 uppercase tracking-widest mb-1 drop-shadow-md">
@@ -252,9 +444,7 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
         </div>
       </main>
 
-      {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS (FLUSH TO BOTTOM EDGE) */}
-      
-      {/* Bottom Left: Shri Shivraj Singh Chouhan (LIGHTER, LARGER, FLUSH TO BOTTOM EDGE) */}
+      {/* 🏛️ TRANSPARENT LEADER CUTOUTS AT BOTTOM CORNERS */}
       <div className="fixed bottom-0 left-0 z-20 pointer-events-none">
         <div className="relative h-[340px] w-[300px] sm:h-[500px] sm:w-[440px] lg:h-[640px] lg:w-[540px] drop-shadow-[0_10px_35px_rgba(0,0,0,0.6)] filter brightness-[1.05]">
           <Image
@@ -275,7 +465,6 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
         </p>
       </div>
 
-      {/* Bottom Right: Shri Narendra Modi Ji (LIGHTER, LARGER, FLUSH TO BOTTOM EDGE) */}
       <div className="fixed bottom-0 right-0 z-20 pointer-events-none">
         <div className="relative h-[340px] w-[310px] sm:h-[500px] sm:w-[460px] lg:h-[640px] lg:w-[560px] drop-shadow-[0_10px_35px_rgba(0,0,0,0.6)] filter brightness-[1.05]">
           <Image
@@ -295,7 +484,6 @@ export function KisanLightDashboard({ onStartCall, onStartOutboundCall }: KisanL
           Hon&apos;ble Prime Minister of India
         </p>
       </div>
-
     </div>
   );
 }

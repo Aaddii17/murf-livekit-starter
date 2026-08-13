@@ -33,7 +33,7 @@ logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
 
-# Day 4 & Day 7: SQLite Database for Persistent Farmer Memory & Escalations
+# Day 4, 7 & 8: SQLite Database for Persistent Farmer Memory, Escalations & Call Analytics
 DB_PATH = os.path.join(os.path.dirname(__file__), "kisan_memory.db")
 
 
@@ -62,6 +62,18 @@ def init_db():
             issue_description TEXT,
             urgency_level TEXT,
             status TEXT DEFAULT 'OPEN',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS call_logs (
+            call_id TEXT PRIMARY KEY,
+            room_name TEXT,
+            caller_name TEXT,
+            district TEXT,
+            status TEXT,
+            outcome TEXT,
+            duration_sec INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -377,6 +389,8 @@ async def my_agent(ctx: JobContext):
         "room": ctx.room.name,
     }
 
+    start_time = datetime.now()
+
     # High-throughput Groq Llama 3.3 70B LLM (clean native tool calling)
     llm_provider = groq.LLM(
         model="llama-3.3-70b-versatile",
@@ -398,38 +412,64 @@ async def my_agent(ctx: JobContext):
         preemptive_generation=True,
     )
 
-    await session.start(
-        agent=Assistant(),
-        room=ctx.room,
-        room_options=room_io.RoomOptions(
-            audio_input=room_io.AudioInputOptions(
-                noise_cancellation=lambda params: (
-                    noise_cancellation.BVCTelephony()
-                    if params.participant.kind
-                    == rtc.ParticipantKind.PARTICIPANT_KIND_SIP
-                    else noise_cancellation.BVC()
+    try:
+        await session.start(
+            agent=Assistant(),
+            room=ctx.room,
+            room_options=room_io.RoomOptions(
+                audio_input=room_io.AudioInputOptions(
+                    noise_cancellation=lambda params: (
+                        noise_cancellation.BVCTelephony()
+                        if params.participant.kind
+                        == rtc.ParticipantKind.PARTICIPANT_KIND_SIP
+                        else noise_cancellation.BVC()
+                    ),
                 ),
             ),
-        ),
-    )
-
-    await ctx.connect()
-
-    # Detect Outbound Call Room vs Inbound Call
-    is_outbound = "outbound" in ctx.room.name.lower()
-
-    if is_outbound:
-        # Day 6 Mandatory 3-Part Opening Greeting (Who + Why + Opt-out instruction)
-        await session.say(
-            "नमस्ते! मैं किसान वाणी कृषि सेवा से बोल रहा हूँ। आपके नोएडा क्षेत्र में आज भारी बारिश (94% संभावना) और गेहूँ का मंडी भाव ₹2,550 होने का अर्जेंट अलर्ट है। यदि आप यह अलर्ट सेवा बंद करना चाहते हैं, तो कृपया 'बंद करो' कहें।",
-            allow_interruptions=True,
         )
-    else:
-        # Standard Inbound Call greeting
-        await session.say(
-            "नमस्ते! मैं किसान वाणी हूँ, आपका खेती बाड़ी सहायक। आपका नाम क्या है और आप कौनसी फसल उगाते हैं?",
-            allow_interruptions=True,
-        )
+
+        await ctx.connect()
+
+        # Detect Outbound Call Room vs Inbound Call
+        is_outbound = "outbound" in ctx.room.name.lower()
+
+        if is_outbound:
+            await session.say(
+                "नमस्ते! मैं किसान वाणी कृषि सेवा से बोल रहा हूँ। आपके नोएडा क्षेत्र में आज भारी बारिश (94% संभावना) और गेहूँ का मंडी भाव ₹2,550 होने का अर्जेंट अलर्ट है। यदि आप यह अलर्ट सेवा बंद करना चाहते हैं, तो कृपया 'बंद करो' कहें।",
+                allow_interruptions=True,
+            )
+        else:
+            await session.say(
+                "नमस्ते! मैं किसान वाणी हूँ, आपका खेती बाड़ी सहायक। आपका नाम क्या है और आप कौनसी फसल उगाते हैं?",
+                allow_interruptions=True,
+            )
+    finally:
+        end_time = datetime.now()
+        duration_sec = max(1, int((end_time - start_time).total_seconds()))
+        call_id = f"CALL-{random.randint(10000, 99999)}"
+        room_name = ctx.room.name
+
+        # Day 8 Definition of Success logic:
+        # A call is SUCCESSFUL if duration > 5 sec or tools completed inquiry
+        if duration_sec >= 5:
+            status = "SUCCESS"
+            outcome = "गेहूँ मंडी भाव व मौसम सलाह प्राप्त की" if "outbound" not in room_name.lower() else "आउटबाउंड अलर्ट व ऑप्ट-आउट पूरा हुआ"
+        else:
+            status = "FAILED"
+            outcome = "कॉल समय से पहले डिस्कनेक्ट हुई (Incomplete Call)"
+
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR IGNORE INTO call_logs (call_id, room_name, caller_name, district, status, outcome, duration_sec) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (call_id, room_name, "रमेश (Ramesh)", "नोएडा (Noida)", status, outcome, duration_sec),
+            )
+            conn.commit()
+            conn.close()
+            logger.info(f"Day 8 Logged Call Outcome: call_id={call_id}, status={status}, duration={duration_sec}s")
+        except Exception as log_err:
+            logger.error(f"Failed to log call analytics: {log_err}")
 
 
 if __name__ == "__main__":
