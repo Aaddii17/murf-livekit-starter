@@ -340,7 +340,7 @@ You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for fa
 
 [DAY 6 OUTBOUND CALL RULES]
 1. If room contains 'outbound', OPEN IMMEDIATELY WITH THIS 3-PART GREETING IN DEVANAGARI:
-   "नमस्ते! मैं किसान वाणी कृषि सेवा से बोल रहा हूँ। आपके नोएडा क्षेत्र में आज भारी बारिश (94% संभावना) और गेहूँ का मंडी भाव ₹2,550 होने का अर्जेंट अलर्ट है। यदि आप यह अलर्ट सेवा बंद करना चाहते हैं, तो कृपया 'बंद करो' कहें।"
+   "नमस्ते! मैं किसान वाणी कृषि सेवा से बोल रहा हूँ। आपके नोएडा क्षेत्र में आज भारी बारिश (94% संभावना) और गेहूँ का मंडी भाव ₹2,550 होने का अर्जент अलर्ट है। यदि आप यह अलर्ट सेवा बंद करना चाहते हैं, तो कृपया 'बंद करो' कहें।"
 2. If caller says "बंद करो", call `opt_out_alerts()` and confirm unsubscription.
 
 [DAY 4 PERSISTENT MEMORY]
@@ -445,6 +445,23 @@ async def my_agent(ctx: JobContext):
                 "नमस्ते! मैं किसान वाणी हूँ, आपका खेती बाड़ी सहायक। आपका नाम क्या है और आप कौनसी फसल उगाते हैं?",
                 allow_interruptions=True,
             )
+
+        # 🌟 Keep my_agent alive until participant disconnects from room
+        disconnect_event = asyncio.Event()
+
+        @ctx.room.on("disconnected")
+        def on_room_disconnected(*args, **kwargs):
+            logger.info("Room disconnected event received in agent")
+            disconnect_event.set()
+
+        @ctx.room.on("participant_disconnected")
+        def on_participant_disconnected(*args, **kwargs):
+            logger.info("Participant disconnected event received in agent")
+            disconnect_event.set()
+
+        # Wait until user hangs up or room disconnects
+        await disconnect_event.wait()
+
     finally:
         end_time = datetime.now()
         duration_sec = max(1, int((end_time - call_start_time).total_seconds()))
