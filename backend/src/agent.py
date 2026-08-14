@@ -449,9 +449,9 @@ async def my_agent(ctx: JobContext):
     # Record exact time when participant connects
     call_start_time = datetime.now()
 
-    # Fast active Groq Llama 3.1 8B Instant LLM (500k TPD quota)
+    # Highly intelligent Groq Llama 3.3 70B LLM (100% native function tool execution)
     llm_provider = groq.LLM(
-        model="llama-3.1-8b-instant",
+        model="llama-3.3-70b-versatile",
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
