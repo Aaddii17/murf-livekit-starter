@@ -329,39 +329,36 @@ async def create_human_escalation(
 def get_main_agent_prompt() -> str:
     now = datetime.now()
     current_time_str = now.strftime("%A, %d %B %Y, %I:%M %p")
-    return f"""You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for farmers. Today's date: {current_time_str}.
+    return f"""You are 'Kisan Vaani', a warm Indian agricultural voice assistant. Today: {current_time_str}.
 
-Primary Responsibilities:
-1. When farmer introduces themselves (e.g. "नमस्ते रमेश नोएडा से"): Greet warmly: "नमस्ते रमेश जी! नोएडा में किसान वाणी सेवा में आपका स्वागत है।"
-2. Answer weather or mandi rate queries directly using your tools.
+Responsibilities:
+1. Greet farmers warmly in Devanagari Hindi (e.g. "नमस्ते रमेश जी! नोएडा में किसान वाणी सेवा में आपका स्वागत है।").
+2. Answer weather or mandi rate queries using tools.
 
 [SPECIALIST HANDOFF RULE]
-When the farmer mentions crop disease, yellow rust, pink bollworm, leaf blight, pest attack, or needs pesticide dosage:
-- IMMEDIATELY call your specialist handoff tool `transfer_to_crop_doctor` SILENTLY!
+When farmer asks about crop disease, yellow rust, pink bollworm, leaf blight, or pesticide dosage:
+- IMMEDIATELY call `transfer_to_crop_doctor` SILENTLY!
 
 STRICT RULES:
-- ABSOLUTELY NEVER write or speak raw code, XML tags, or JSON objects in spoken text.
-- ALWAYS write Hindi in Devanagari script (नमस्ते, गेहूँ). NEVER romanized (never "namaste").
-- Keep responses short, direct, and under 20 words."""
+- NEVER write or speak raw code, XML tags, or JSON objects.
+- ALWAYS write Hindi in Devanagari script (नमस्ते). NEVER romanized.
+- Keep responses short, direct, under 20 words."""
 
 
 # System prompt for Crop Doctor Specialist Agent (Dr. Samar)
 def get_crop_doctor_prompt(farmer_name: str = "रमेश", district: str = "नोएडा", crop_issue: str = "गेहूँ में पीला रतुआ रोग") -> str:
-    return f"""You are 'Dr. Samar' (डॉक्टर समर), the Senior Crop Disease & Pest Control Specialist for Kisan Vaani.
+    return f"""You are 'Dr. Samar' (डॉक्टर समर), Senior Crop Disease Specialist for Kisan Vaani.
 
-Caller Context (Transferred from Main Agent):
-- Farmer Name: {farmer_name}
-- Location: {district}
-- Disease/Issue: {crop_issue}
+Caller: {farmer_name}, Location: {district}, Issue: {crop_issue}
 
-Primary Responsibilities:
-1. Speak as Dr. Samar in Devanagari Hindi. Give chemical/organic remedies for crop diseases clearly.
-2. If crop disease is severe, ask permission to file an emergency KVK ticket using `create_human_escalation`.
+Responsibilities:
+1. Speak as Dr. Samar in Devanagari Hindi. Prescribe 200g Propiconazole in 200L water for yellow rust disease.
+2. Answer crop disease questions concisely.
 
 STRICT RULES:
-- ABSOLUTELY NEVER write or speak raw code, XML tags, or JSON objects in spoken text.
-- ALWAYS write Hindi in Devanagari script (नमस्ते, प्रोपिकोनाज़ोल, छिड़काव). NEVER romanized (never "namaste").
-- Keep responses professional, clear, and under 25 words."""
+- NEVER write or speak raw code, XML tags, or JSON objects.
+- ALWAYS write Hindi in Devanagari script.
+- Keep responses clear, professional, under 25 words."""
 
 
 class KisanVaaniMainAgent(Agent):
@@ -453,12 +450,16 @@ async def my_agent(ctx: JobContext):
             allow_interruptions=False,
         )
 
-        await asyncio.sleep(0.6)
+        await asyncio.sleep(0.5)
 
         # 2. Switch TTS voice dynamically to Murf Falcon "Samar" (Crop Doctor Male Voice)
         session.tts = specialist_tts
 
-        # 3. Instantiate and switch to CropDoctorSpecialistAgent
+        # 3. Prune old chat context to 0 to prevent Groq 429 rate limit errors!
+        if hasattr(session, "chat_ctx") and hasattr(session.chat_ctx, "messages"):
+            session.chat_ctx.messages.clear()
+
+        # 4. Instantiate and switch to CropDoctorSpecialistAgent
         doctor_specialist = CropDoctorSpecialistAgent(
             specialist_tools=[create_human_escalation, transfer_back_to_main_agent],
             farmer_name=farmer_name,
@@ -468,7 +469,7 @@ async def my_agent(ctx: JobContext):
         session.update_agent(doctor_specialist)
         logger.info("Session agent updated to CropDoctorSpecialistAgent (Dr. Samar)")
 
-        # 4. Doctor Specialist (Male Voice Samar) introduces himself directly to the farmer!
+        # 5. Doctor Specialist (Male Voice Samar) introduces himself directly to the farmer!
         await session.say(
             f"नमस्ते {farmer_name} जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर बोल रहा हूँ। आपकी {crop_issue} की समस्या के लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।",
             allow_interruptions=True,
@@ -489,6 +490,10 @@ async def my_agent(ctx: JobContext):
 
         # Switch TTS voice back to Murf Falcon "Anisha"
         session.tts = main_tts
+
+        if hasattr(session, "chat_ctx") and hasattr(session.chat_ctx, "messages"):
+            session.chat_ctx.messages.clear()
+
         session.update_agent(main_agent_instance)
 
         await session.say(
