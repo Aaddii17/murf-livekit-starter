@@ -325,40 +325,6 @@ async def create_human_escalation(
     return json.dumps(result, ensure_ascii=False)
 
 
-# Day 9: Handoff Tool from Main Agent to Crop Doctor Specialist
-@llm.function_tool(
-    name="transfer_to_crop_doctor",
-    description="Transfer the caller to Dr. Samar, Senior Crop Disease & Pest Specialist, when the farmer asks about severe crop diseases (e.g. yellow rust, pink bollworm, blight), pest infestation, or needs chemical treatment/dosage advice.",
-)
-async def transfer_to_crop_doctor(
-    farmer_name: str = "रमेश",
-    district: str = "नोएडा",
-    crop_issue: str = "गेहूँ में पीला रतुआ रोग (Yellow Rust)",
-) -> str:
-    logger.info(f"Executing Day 9 Handoff Tool: transfer_to_crop_doctor for '{farmer_name}', issue='{crop_issue}'")
-    return json.dumps({
-        "status": "handoff_initiated",
-        "specialist": "Dr. Samar (Senior Crop Disease Specialist)",
-        "farmer_name": farmer_name,
-        "district": district,
-        "crop_issue": crop_issue,
-        "handoff_announcement": f"{farmer_name} जी, फसल के रोग और कीट समाधान के लिए मैं आपको हमारे वरिष्ठ फसल डॉक्टर विशेषज्ञ से कनेक्ट कर रहा हूँ। कृपया एक सेकंड होल्ड करें।",
-    }, ensure_ascii=False)
-
-
-# Day 9: Handoff Tool from Crop Doctor Specialist back to Main Agent
-@llm.function_tool(
-    name="transfer_back_to_main_agent",
-    description="Transfer the caller back to the main Kisan Vaani assistant when crop disease advice is complete or farmer asks about general weather or mandi prices.",
-)
-async def transfer_back_to_main_agent() -> str:
-    logger.info("Executing Day 9 Handoff Tool: transfer_back_to_main_agent")
-    return json.dumps({
-        "status": "transfer_back_initiated",
-        "message": "Returning caller to main Kisan Vaani assistant.",
-    }, ensure_ascii=False)
-
-
 # System prompt for Main Agent (Kisan Vaani General Assistant)
 def get_main_agent_prompt() -> str:
     now = datetime.now()
@@ -371,9 +337,7 @@ Primary Responsibilities:
 
 [DAY 9 SPECIALIST HANDOFF RULE - MANDATORY]
 When the farmer asks about severe crop diseases, pest infestation, yellow rust, pink bollworm, leaf blight, or pesticide dosage:
-1. DO NOT attempt to give chemical medicine formulas yourself.
-2. Say clearly: "रमेश जी, फसल के रोग और कीट समाधान के लिए मैं आपको हमारे वरिष्ठ फसल डॉक्टर विशेषज्ञ से कनेक्ट कर रहा हूँ। कृपया एक सेकंड होल्ड करें।"
-3. Call `transfer_to_crop_doctor(farmer_name, district, crop_issue)` immediately!
+- Call `transfer_to_crop_doctor(farmer_name, district, crop_issue)` immediately!
 
 LANGUAGE & SCRIPT RULE:
 - ALWAYS write every language in its own native script. Hindi -> Devanagari (नमस्ते, गेहूँ). NEVER romanized (never "namaste").
@@ -391,10 +355,9 @@ Caller Context (Transferred from Main Agent):
 - Disease/Issue: {crop_issue}
 
 Primary Responsibilities:
-1. Introduce yourself warmly as Dr. Samar: "नमस्ते {farmer_name} जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर हूँ। आपकी {crop_issue} की समस्या के लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।"
-2. Provide precise chemical/organic remedies and prevention steps in natural Devanagari Hindi.
-3. If the crop damage is severe, ask permission to create an emergency KVK ticket using `create_human_escalation`.
-4. When the crop disease discussion is finished, call `transfer_back_to_main_agent()` to return the farmer to the main assistant!
+1. Provide precise chemical/organic remedies and prevention steps in natural Devanagari Hindi.
+2. If the crop damage is severe, ask permission to create an emergency KVK ticket using `create_human_escalation`.
+3. When the crop disease discussion is finished, call `transfer_back_to_main_agent()` to return the farmer to the main assistant!
 
 LANGUAGE & SCRIPT RULE:
 - ALWAYS write every language in its own native script. Hindi -> Devanagari (नमस्ते, प्रोपिकोनाज़ोल, छिड़काव). NEVER romanized (never "namaste").
@@ -403,30 +366,18 @@ LANGUAGE & SCRIPT RULE:
 
 
 class KisanVaaniMainAgent(Agent):
-    def __init__(self) -> None:
+    def __init__(self, main_tools: list) -> None:
         super().__init__(
             instructions=get_main_agent_prompt(),
-            tools=[
-                lookup_farmer_profile,
-                save_farmer_profile,
-                forget_farmer_profile,
-                get_weather_forecast,
-                get_mandi_prices,
-                opt_out_alerts,
-                create_human_escalation,
-                transfer_to_crop_doctor,
-            ],
+            tools=main_tools,
         )
 
 
 class CropDoctorSpecialistAgent(Agent):
-    def __init__(self, farmer_name: str = "रमेश", district: str = "नोएडा", crop_issue: str = "गेहूँ में पीला रतुआ रोग") -> str:
+    def __init__(self, specialist_tools: list, farmer_name: str = "रमेश", district: str = "नोएडा", crop_issue: str = "गेहूँ में पीला रतुआ रोग") -> str:
         super().__init__(
             instructions=get_crop_doctor_prompt(farmer_name, district, crop_issue),
-            tools=[
-                create_human_escalation,
-                transfer_back_to_main_agent,
-            ],
+            tools=specialist_tools,
         )
 
 
@@ -481,7 +432,86 @@ async def my_agent(ctx: JobContext):
         preemptive_generation=True,
     )
 
-    main_agent_instance = KisanVaaniMainAgent()
+    has_specialist_handoff = False
+
+    # Day 9: Dynamic Handoff Tool from Main Agent -> Crop Doctor Specialist (Dr. Samar)
+    @llm.function_tool(
+        name="transfer_to_crop_doctor",
+        description="Transfer the caller to Dr. Samar, Senior Crop Disease Specialist, when the farmer mentions severe crop disease (e.g. yellow rust, pink bollworm, blight), pest infestation, or needs chemical treatment/dosage advice.",
+    )
+    async def transfer_to_crop_doctor(
+        farmer_name: str = "रमेश",
+        district: str = "नोएडा",
+        crop_issue: str = "गेहूँ में पीला रतुआ रोग (Yellow Rust)",
+    ) -> str:
+        nonlocal has_specialist_handoff
+        has_specialist_handoff = True
+        logger.info(f"Executing Day 9 Handoff: transfer_to_crop_doctor for '{farmer_name}', issue='{crop_issue}'")
+
+        # 1. Main agent announces transfer
+        await session.say(
+            "रमेश जी, फसल के रोग और कीट समाधान के लिए मैं आपको हमारे वरिष्ठ फसल डॉक्टर विशेषज्ञ से कनेक्ट कर रहा हूँ। कृपया एक सेकंड होल्ड करें।",
+            allow_interruptions=False,
+        )
+
+        # 2. Switch TTS voice dynamically to Murf Falcon "Samar" (Crop Doctor Male Voice)
+        session.tts = specialist_tts
+
+        # 3. Instantiate and switch to CropDoctorSpecialistAgent
+        doctor_specialist = CropDoctorSpecialistAgent(
+            specialist_tools=[create_human_escalation, transfer_back_to_main_agent],
+            farmer_name=farmer_name,
+            district=district,
+            crop_issue=crop_issue,
+        )
+        session.update_agent(doctor_specialist)
+        logger.info("Session agent updated to CropDoctorSpecialistAgent (Dr. Samar)")
+
+        # 4. Doctor Specialist introduces himself and gives precise remedy!
+        await session.say(
+            f"नमस्ते {farmer_name} जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर हूँ। आपकी {crop_issue} की समस्या के लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।",
+            allow_interruptions=True,
+        )
+
+        return json.dumps({
+            "status": "handoff_completed",
+            "specialist": "Dr. Samar (Senior Crop Disease Specialist)",
+        }, ensure_ascii=False)
+
+    # Day 9: Dynamic Handoff Tool from Crop Doctor Specialist -> Main Agent
+    @llm.function_tool(
+        name="transfer_back_to_main_agent",
+        description="Transfer the caller back to the main Kisan Vaani assistant when crop disease advice is complete or farmer asks about general weather or mandi prices.",
+    )
+    async def transfer_back_to_main_agent() -> str:
+        logger.info("Executing Day 9 Handoff: transfer_back_to_main_agent")
+
+        # Switch TTS voice back to Murf Falcon "Anisha"
+        session.tts = main_tts
+        session.update_agent(main_agent_instance)
+
+        await session.say(
+            "रमेश जी, मैं किसान वाणी मुख्य सहायक वापस कनेक्ट हो गया हूँ। क्या आपको मौसम या मंडी भाव की कोई और जानकारी चाहिए?",
+            allow_interruptions=True,
+        )
+
+        return json.dumps({
+            "status": "transfer_back_completed",
+            "message": "Returned caller to main assistant.",
+        }, ensure_ascii=False)
+
+    main_tools = [
+        lookup_farmer_profile,
+        save_farmer_profile,
+        forget_farmer_profile,
+        get_weather_forecast,
+        get_mandi_prices,
+        opt_out_alerts,
+        create_human_escalation,
+        transfer_to_crop_doctor,
+    ]
+
+    main_agent_instance = KisanVaaniMainAgent(main_tools=main_tools)
 
     try:
         await session.start(
@@ -516,47 +546,6 @@ async def my_agent(ctx: JobContext):
                 allow_interruptions=True,
             )
 
-        # 🌟 Day 9 Multi-Agent Handoff Event Listener
-        has_specialist_handoff = False
-
-        @session.on("function_call_completed")
-        def on_function_call(event):
-            nonlocal has_specialist_handoff
-            try:
-                fn_name = event.function.name if hasattr(event, 'function') else ""
-                logger.info(f"Day 9 Tool Completed: {fn_name}")
-                if fn_name == "transfer_to_crop_doctor":
-                    has_specialist_handoff = True
-                    # Switch TTS to Murf Voice "Samar" (Doctor Specialist)
-                    session.tts = specialist_tts
-                    # Instantiating Specialist Agent with context
-                    doctor_specialist = CropDoctorSpecialistAgent(
-                        farmer_name="रमेश",
-                        district="नोएडा",
-                        crop_issue="गेहूँ में पीला रतुआ रोग (Yellow Rust)",
-                    )
-                    session.update_agent(doctor_specialist)
-                    logger.info("Successfully handed off session to CropDoctorSpecialistAgent (Dr. Samar)")
-                    asyncio.create_task(
-                        session.say(
-                            "नमस्ते रमेश जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर हूँ। आपकी गेहूँ की फ़सल में जो पीला रतुआ रोग की समस्या है, उसके लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।",
-                            allow_interruptions=True,
-                        )
-                    )
-                elif fn_name == "transfer_back_to_main_agent":
-                    # Switch TTS back to Murf Voice "Anisha" (Main Agent)
-                    session.tts = main_tts
-                    session.update_agent(main_agent_instance)
-                    logger.info("Successfully returned session to KisanVaaniMainAgent (Anisha)")
-                    asyncio.create_task(
-                        session.say(
-                            "रमेश जी, मैं किसान वाणी मुख्य सहायक वापस कनेक्ट हो गया हूँ। क्या आपको मौसम या मंडी भाव की कोई और जानकारी चाहिए?",
-                            allow_interruptions=True,
-                        )
-                    )
-            except Exception as handoff_err:
-                logger.error(f"Error handling agent handoff: {handoff_err}")
-
         # 🌟 Keep session alive until participant disconnects from room
         disconnect_event = asyncio.Event()
 
@@ -582,7 +571,7 @@ async def my_agent(ctx: JobContext):
         # Day 8 & 9 Definition of Success & Outcome Summary:
         if duration_sec >= 5:
             status = "SUCCESS"
-            if "has_specialist_handoff" in locals() and has_specialist_handoff:
+            if has_specialist_handoff:
                 outcome = "वरिष्ठ फसल विशेषज्ञ (Dr. Samar) से पीला रतुआ रोग परामर्श पूरा हुआ"
             elif "outbound" in room_name.lower():
                 outcome = "आउटबाउंड अलर्ट व ऑप्ट-आउट पूरा हुआ"
