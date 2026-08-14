@@ -400,9 +400,9 @@ async def my_agent(ctx: JobContext):
     # Record exact time when participant connects
     call_start_time = datetime.now()
 
-    # Highly intelligent Groq Llama 3.3 70B LLM (100% native function tool execution)
+    # Fast active Groq Llama 3.1 8B Instant LLM (500k TPD quota)
     llm_provider = groq.LLM(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
@@ -448,11 +448,13 @@ async def my_agent(ctx: JobContext):
         has_specialist_handoff = True
         logger.info(f"Executing Day 9 Handoff: transfer_to_crop_doctor for '{farmer_name}', issue='{crop_issue}'")
 
-        # 1. Main agent announces transfer
+        # 1. Main agent announces transfer in female voice (Anisha)
         await session.say(
             "रमेश जी, फसल के रोग और कीट समाधान के लिए मैं आपको हमारे वरिष्ठ फसल डॉक्टर विशेषज्ञ से कनेक्ट कर रहा हूँ। कृपया एक सेकंड होल्ड करें।",
             allow_interruptions=False,
         )
+
+        await asyncio.sleep(0.6)
 
         # 2. Switch TTS voice dynamically to Murf Falcon "Samar" (Crop Doctor Male Voice)
         session.tts = specialist_tts
@@ -467,9 +469,9 @@ async def my_agent(ctx: JobContext):
         session.update_agent(doctor_specialist)
         logger.info("Session agent updated to CropDoctorSpecialistAgent (Dr. Samar)")
 
-        # 4. Doctor Specialist introduces himself and gives precise remedy!
+        # 4. Doctor Specialist (Male Voice Samar) introduces himself directly to the farmer!
         await session.say(
-            f"नमस्ते {farmer_name} जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर हूँ। आपकी {crop_issue} की समस्या के लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।",
+            f"नमस्ते {farmer_name} जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर बोल रहा हूँ। आपकी {crop_issue} की समस्या के लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।",
             allow_interruptions=True,
         )
 
