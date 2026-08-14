@@ -33,7 +33,7 @@ logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
 
-# Day 4, 7 & 8: SQLite Database for Persistent Farmer Memory, Escalations & Call Analytics
+# Day 4, 7, 8 & 9: SQLite Database for Farmer Memory, Escalations, Analytics & Handoff Logs
 DB_PATH = os.path.join(os.path.dirname(__file__), "kisan_memory.db")
 
 
@@ -325,30 +325,87 @@ async def create_human_escalation(
     return json.dumps(result, ensure_ascii=False)
 
 
-def get_kisan_system_prompt() -> str:
+# Day 9: Handoff Tool from Main Agent to Crop Doctor Specialist
+@llm.function_tool(
+    name="transfer_to_crop_doctor",
+    description="Transfer the caller to Dr. Samar, Senior Crop Disease & Pest Specialist, when the farmer asks about severe crop diseases (e.g. yellow rust, pink bollworm, blight), pest infestation, or needs chemical treatment/dosage advice.",
+)
+async def transfer_to_crop_doctor(
+    farmer_name: str = "रमेश",
+    district: str = "नोएडा",
+    crop_issue: str = "गेहूँ में पीला रतुआ रोग (Yellow Rust)",
+) -> str:
+    logger.info(f"Executing Day 9 Handoff Tool: transfer_to_crop_doctor for '{farmer_name}', issue='{crop_issue}'")
+    return json.dumps({
+        "status": "handoff_initiated",
+        "specialist": "Dr. Samar (Senior Crop Disease Specialist)",
+        "farmer_name": farmer_name,
+        "district": district,
+        "crop_issue": crop_issue,
+        "handoff_announcement": f"{farmer_name} जी, फसल के रोग और कीट समाधान के लिए मैं आपको हमारे वरिष्ठ फसल डॉक्टर विशेषज्ञ से कनेक्ट कर रहा हूँ। कृपया एक सेकंड होल्ड करें।",
+    }, ensure_ascii=False)
+
+
+# Day 9: Handoff Tool from Crop Doctor Specialist back to Main Agent
+@llm.function_tool(
+    name="transfer_back_to_main_agent",
+    description="Transfer the caller back to the main Kisan Vaani assistant when crop disease advice is complete or farmer asks about general weather or mandi prices.",
+)
+async def transfer_back_to_main_agent() -> str:
+    logger.info("Executing Day 9 Handoff Tool: transfer_back_to_main_agent")
+    return json.dumps({
+        "status": "transfer_back_initiated",
+        "message": "Returning caller to main Kisan Vaani assistant.",
+    }, ensure_ascii=False)
+
+
+# System prompt for Main Agent (Kisan Vaani General Assistant)
+def get_main_agent_prompt() -> str:
     now = datetime.now()
     current_time_str = now.strftime("%A, %d %B %Y, %I:%M %p")
     return f"""You are 'Kisan Vaani', a warm, practical Indian AI agricultural assistant for farmers. Today's date: {current_time_str}.
 
-When a farmer speaks and shares their name, location, or crop:
-1. Greet them by name in Hindi (Devanagari): "नमस्ते रमेश जी! नोएडा में किसान वाणी सेवा में आपका स्वागत है।"
-2. Look up saved info using `lookup_farmer_profile` or fetch weather using `get_weather_forecast` or mandi rates using `get_mandi_prices`.
-3. Provide the requested information directly in spoken Devanagari Hindi.
+Primary Responsibilities:
+1. Greet farmers warmly in Devanagari Hindi (e.g. "नमस्ते रमेश जी! नोएडा में किसान वाणी सेवा में आपका स्वागत है।").
+2. Answer general farming questions, fetch weather (`get_weather_forecast`), mandi rates (`get_mandi_prices`), and lookup caller profile (`lookup_farmer_profile`).
 
-Day 7 KVK Emergency Ticket Rule:
-If the farmer reports severe crop disease or emergency, ask permission to file a KVK ticket. If yes, call `create_human_escalation` and state the ticket ID.
+[DAY 9 SPECIALIST HANDOFF RULE - MANDATORY]
+When the farmer asks about severe crop diseases, pest infestation, yellow rust, pink bollworm, leaf blight, or pesticide dosage:
+1. DO NOT attempt to give chemical medicine formulas yourself.
+2. Say clearly: "रमेश जी, फसल के रोग और कीट समाधान के लिए मैं आपको हमारे वरिष्ठ फसल डॉक्टर विशेषज्ञ से कनेक्ट कर रहा हूँ। कृपया एक सेकंड होल्ड करें।"
+3. Call `transfer_to_crop_doctor(farmer_name, district, crop_issue)` immediately!
 
-Rules:
-- ALWAYS speak in natural Devanagari Hindi (हिंदी).
-- ABSOLUTELY NEVER write or output raw code, XML tags, or JSON objects in spoken responses.
-- ONLY IF caller says "धन्यवाद", "thank you", or "thanks", reply: "आपका बहुत-बहुत स्वागत है! आपका दिन शुभ हो।"
+LANGUAGE & SCRIPT RULE:
+- ALWAYS write every language in its own native script. Hindi -> Devanagari (नमस्ते, गेहूँ). NEVER romanized (never "namaste").
+- ABSOLUTELY NEVER write raw code, XML tags like <function=...>, or JSON objects in spoken responses.
 - Keep responses short, direct, and under 25 words."""
 
 
-class Assistant(Agent):
+# System prompt for Crop Doctor Specialist Agent (Dr. Samar)
+def get_crop_doctor_prompt(farmer_name: str = "रमेश", district: str = "नोएडा", crop_issue: str = "गेहूँ में पीला रतुआ रोग") -> str:
+    return f"""You are 'Dr. Samar' (डॉक्टर समर), the Senior Crop Disease & Pest Control Specialist for Kisan Vaani.
+
+Caller Context (Transferred from Main Agent):
+- Farmer Name: {farmer_name}
+- Location: {district}
+- Disease/Issue: {crop_issue}
+
+Primary Responsibilities:
+1. Introduce yourself warmly as Dr. Samar: "नमस्ते {farmer_name} जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर हूँ। आपकी {crop_issue} की समस्या के लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।"
+2. Provide precise chemical/organic remedies and prevention steps in natural Devanagari Hindi.
+3. If the crop damage is severe, ask permission to create an emergency KVK ticket using `create_human_escalation`.
+4. When the crop disease discussion is finished, call `transfer_back_to_main_agent()` to return the farmer to the main assistant!
+
+LANGUAGE & SCRIPT RULE:
+- ALWAYS write every language in its own native script. Hindi -> Devanagari (नमस्ते, प्रोपिकोनाज़ोल, छिड़काव). NEVER romanized (never "namaste").
+- ABSOLUTELY NEVER write raw code, XML tags like <function=...>, or JSON objects in spoken responses.
+- Keep responses professional, clear, and under 30 words."""
+
+
+class KisanVaaniMainAgent(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions=get_kisan_system_prompt(),
+            instructions=get_main_agent_prompt(),
             tools=[
                 lookup_farmer_profile,
                 save_farmer_profile,
@@ -357,6 +414,18 @@ class Assistant(Agent):
                 get_mandi_prices,
                 opt_out_alerts,
                 create_human_escalation,
+                transfer_to_crop_doctor,
+            ],
+        )
+
+
+class CropDoctorSpecialistAgent(Agent):
+    def __init__(self, farmer_name: str = "रमेश", district: str = "नोएडा", crop_issue: str = "गेहूँ में पीला रतुआ रोग") -> str:
+        super().__init__(
+            instructions=get_crop_doctor_prompt(farmer_name, district, crop_issue),
+            tools=[
+                create_human_escalation,
+                transfer_back_to_main_agent,
             ],
         )
 
@@ -386,24 +455,37 @@ async def my_agent(ctx: JobContext):
         api_key=os.getenv("GROQ_API_KEY"),
     )
 
+    # Initial TTS Engine: Murf Falcon Voice "Anisha" (Main Agent Female Voice)
+    main_tts = murf.TTS(
+        voice="Anisha",
+        style="Conversation",
+        tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+        text_pacing=True,
+    )
+
+    # Specialist TTS Engine: Murf Falcon Voice "Samar" (Crop Doctor Male Specialist Voice)
+    specialist_tts = murf.TTS(
+        voice="Samar",
+        style="Conversation",
+        tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+        text_pacing=True,
+    )
+
     # Official Murf AI Multilingual Session
     session = AgentSession(
         stt=deepgram.STT(model="nova-3", language="multi"),
         llm=llm_provider,
-        tts=murf.TTS(
-            voice="Anisha",
-            style="Conversation",
-            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
-            text_pacing=True,
-        ),
+        tts=main_tts,
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
         preemptive_generation=True,
     )
 
+    main_agent_instance = KisanVaaniMainAgent()
+
     try:
         await session.start(
-            agent=Assistant(),
+            agent=main_agent_instance,
             room=ctx.room,
             room_options=room_io.RoomOptions(
                 audio_input=room_io.AudioInputOptions(
@@ -434,7 +516,48 @@ async def my_agent(ctx: JobContext):
                 allow_interruptions=True,
             )
 
-        # 🌟 Keep my_agent alive until participant disconnects from room
+        # 🌟 Day 9 Multi-Agent Handoff Event Listener
+        has_specialist_handoff = False
+
+        @session.on("function_call_completed")
+        def on_function_call(event):
+            nonlocal has_specialist_handoff
+            try:
+                fn_name = event.function.name if hasattr(event, 'function') else ""
+                logger.info(f"Day 9 Tool Completed: {fn_name}")
+                if fn_name == "transfer_to_crop_doctor":
+                    has_specialist_handoff = True
+                    # Switch TTS to Murf Voice "Samar" (Doctor Specialist)
+                    session.tts = specialist_tts
+                    # Instantiating Specialist Agent with context
+                    doctor_specialist = CropDoctorSpecialistAgent(
+                        farmer_name="रमेश",
+                        district="नोएडा",
+                        crop_issue="गेहूँ में पीला रतुआ रोग (Yellow Rust)",
+                    )
+                    session.update_agent(doctor_specialist)
+                    logger.info("Successfully handed off session to CropDoctorSpecialistAgent (Dr. Samar)")
+                    asyncio.create_task(
+                        session.say(
+                            "नमस्ते रमेश जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर हूँ। आपकी गेहूँ की फ़सल में जो पीला रतुआ रोग की समस्या है, उसके लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।",
+                            allow_interruptions=True,
+                        )
+                    )
+                elif fn_name == "transfer_back_to_main_agent":
+                    # Switch TTS back to Murf Voice "Anisha" (Main Agent)
+                    session.tts = main_tts
+                    session.update_agent(main_agent_instance)
+                    logger.info("Successfully returned session to KisanVaaniMainAgent (Anisha)")
+                    asyncio.create_task(
+                        session.say(
+                            "रमेश जी, मैं किसान वाणी मुख्य सहायक वापस कनेक्ट हो गया हूँ। क्या आपको मौसम या मंडी भाव की कोई और जानकारी चाहिए?",
+                            allow_interruptions=True,
+                        )
+                    )
+            except Exception as handoff_err:
+                logger.error(f"Error handling agent handoff: {handoff_err}")
+
+        # 🌟 Keep session alive until participant disconnects from room
         disconnect_event = asyncio.Event()
 
         @ctx.room.on("disconnected")
@@ -456,10 +579,15 @@ async def my_agent(ctx: JobContext):
         call_id = f"CALL-{random.randint(10000, 99999)}"
         room_name = ctx.room.name
 
-        # Day 8 Definition of Success logic:
+        # Day 8 & 9 Definition of Success & Outcome Summary:
         if duration_sec >= 5:
             status = "SUCCESS"
-            outcome = "गेहूँ मंडी भाव व मौसम सलाह प्राप्त की" if "outbound" not in room_name.lower() else "आउटबाउंड अलर्ट व ऑप्ट-आउट पूरा हुआ"
+            if "has_specialist_handoff" in locals() and has_specialist_handoff:
+                outcome = "वरिष्ठ फसल विशेषज्ञ (Dr. Samar) से पीला रतुआ रोग परामर्श पूरा हुआ"
+            elif "outbound" in room_name.lower():
+                outcome = "आउटबाउंड अलर्ट व ऑप्ट-आउट पूरा हुआ"
+            else:
+                outcome = "गेहूँ मंडी भाव व मौसम सलाह प्राप्त की"
         else:
             status = "FAILED"
             outcome = "कॉल समय से पहले डिस्कनेक्ट हुई (Incomplete Call)"
@@ -473,7 +601,7 @@ async def my_agent(ctx: JobContext):
             )
             conn.commit()
             conn.close()
-            logger.info(f"Day 8 Logged Call Outcome: call_id={call_id}, status={status}, duration={duration_sec}s")
+            logger.info(f"Day 9 Logged Call Outcome: call_id={call_id}, status={status}, outcome='{outcome}', duration={duration_sec}s")
         except Exception as log_err:
             logger.error(f"Failed to log call analytics: {log_err}")
 
