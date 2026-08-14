@@ -362,17 +362,19 @@ STRICT RULES:
 
 
 class KisanVaaniMainAgent(Agent):
-    def __init__(self, main_tools: list) -> None:
+    def __init__(self, main_tts, main_tools: list) -> None:
         super().__init__(
             instructions=get_main_agent_prompt(),
+            tts=main_tts,
             tools=main_tools,
         )
 
 
 class CropDoctorSpecialistAgent(Agent):
-    def __init__(self, specialist_tools: list, farmer_name: str = "रमेश", district: str = "नोएडा", crop_issue: str = "गेहूँ में पीला रतुआ रोग") -> str:
+    def __init__(self, specialist_tts, specialist_tools: list, farmer_name: str = "रमेश", district: str = "नोएडा", crop_issue: str = "गेहूँ में पीला रतुआ रोग") -> str:
         super().__init__(
             instructions=get_crop_doctor_prompt(farmer_name, district, crop_issue),
+            tts=specialist_tts,
             tools=specialist_tools,
         )
 
@@ -452,15 +454,13 @@ async def my_agent(ctx: JobContext):
 
         await asyncio.sleep(0.5)
 
-        # 2. Switch TTS voice dynamically to Murf Falcon "Samar" (Crop Doctor Male Voice)
-        session.tts = specialist_tts
-
-        # 3. Prune old chat context to 0 to prevent Groq 429 rate limit errors!
+        # 2. Prune old chat context to 0 to prevent Groq 429 rate limit errors!
         if hasattr(session, "chat_ctx") and hasattr(session.chat_ctx, "messages"):
             session.chat_ctx.messages.clear()
 
-        # 4. Instantiate and switch to CropDoctorSpecialistAgent
+        # 3. Instantiate and switch agent to CropDoctorSpecialistAgent (configured with Murf Voice Samar!)
         doctor_specialist = CropDoctorSpecialistAgent(
+            specialist_tts=specialist_tts,
             specialist_tools=[create_human_escalation, transfer_back_to_main_agent],
             farmer_name=farmer_name,
             district=district,
@@ -469,7 +469,7 @@ async def my_agent(ctx: JobContext):
         session.update_agent(doctor_specialist)
         logger.info("Session agent updated to CropDoctorSpecialistAgent (Dr. Samar)")
 
-        # 5. Doctor Specialist (Male Voice Samar) introduces himself directly to the farmer!
+        # 4. Doctor Specialist (Male Voice Samar) introduces himself directly to the farmer!
         await session.say(
             f"नमस्ते {farmer_name} जी! मैं किसान वाणी का वरिष्ठ फसल रोग विशेषज्ञ डॉक्टर समर बोल रहा हूँ। आपकी {crop_issue} की समस्या के लिए 200 ग्राम प्रोपिकोनाज़ोल का 200 लीटर पानी में घोल बनाकर छिड़काव करें।",
             allow_interruptions=True,
@@ -487,9 +487,6 @@ async def my_agent(ctx: JobContext):
     )
     async def transfer_back_to_main_agent() -> str:
         logger.info("Executing Day 9 Handoff: transfer_back_to_main_agent")
-
-        # Switch TTS voice back to Murf Falcon "Anisha"
-        session.tts = main_tts
 
         if hasattr(session, "chat_ctx") and hasattr(session.chat_ctx, "messages"):
             session.chat_ctx.messages.clear()
@@ -517,7 +514,7 @@ async def my_agent(ctx: JobContext):
         transfer_to_crop_doctor,
     ]
 
-    main_agent_instance = KisanVaaniMainAgent(main_tools=main_tools)
+    main_agent_instance = KisanVaaniMainAgent(main_tts=main_tts, main_tools=main_tools)
 
     try:
         await session.start(
