@@ -485,8 +485,8 @@ async def my_agent(ctx: JobContext):
         name="transfer_back_to_main_agent",
         description="Transfer the caller back to the main Kisan Vaani assistant when crop disease advice is complete or farmer asks about general weather or mandi prices.",
     )
-    async def transfer_back_to_main_agent() -> str:
-        logger.info("Executing Day 9 Handoff: transfer_back_to_main_agent")
+    async def transfer_back_to_main_agent(reason: str = "general_query") -> str:
+        logger.info(f"Executing Day 9 Handoff: transfer_back_to_main_agent with reason='{reason}'")
 
         if hasattr(session, "chat_ctx") and hasattr(session.chat_ctx, "messages"):
             session.chat_ctx.messages.clear()
